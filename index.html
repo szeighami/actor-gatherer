@@ -36,7 +36,8 @@ p { margin: 0 0 1.1em; }
 .figs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 28px 0; }
 @media (max-width: 640px) { .figs { grid-template-columns: 1fr; } }
 figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-figure img { width: 100%; display: block; border-radius: 6px; }
+figure img { width: 100%; display: block; border-radius: 6px; background: #fff; }
+.figs { align-items: end; }
 .placeholder { aspect-ratio: 4/3; display: grid; place-items: center; color: var(--muted);
   border: 1px dashed var(--line); border-radius: 6px; font: 0.9rem Inter, system-ui, sans-serif; }
 figcaption { font: 0.88rem/1.45 Inter, system-ui, sans-serif; color: var(--muted); margin-top: 10px; text-align: center; }
@@ -75,11 +76,11 @@ footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
   <div class="callout">Results show more than 30% improvement in accuracy.</div>
   <div class="figs">
     <figure>
-      <div class="placeholder">Figure 1 coming soon</div>
+      <img src="figures/fig1_single_agent.png" alt="Bar chart: average accuracy in single-agent settings. AG-Codex 91%, Codex 32%, Mem0-Codex 59%, Scroll 41%, RLM 32%, CLM 41% (+32 points over the best baseline).">
       <figcaption>Fig. 1. Single-agent results across coding and data analysis tasks</figcaption>
     </figure>
     <figure>
-      <div class="placeholder">Figure 2 coming soon</div>
+      <img src="figures/fig2_multi_agent.png" alt="Bar chart: average accuracy in multi-agent settings. AG-Codex 100%, Codex+Hint 69%, Codex 0% (+31 points).">
       <figcaption>Fig. 2. Results in multi-agent settings</figcaption>
     </figure>
   </div>
