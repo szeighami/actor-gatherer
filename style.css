@@ -17,8 +17,9 @@ h1 { font: 700 clamp(2rem, 5vw, 2.9rem)/1.15 Inter, system-ui, sans-serif; margi
 .subtitle { font: 400 1.15rem/1.5 Inter, system-ui, sans-serif; color: var(--muted); margin: 0 0 24px; }
 .buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .btn { font: 500 0.95rem Inter, system-ui, sans-serif; text-decoration: none; color: var(--bg);
-  background: var(--fg); padding: 9px 18px; border-radius: 999px; }
-.btn.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  background: var(--accent); border: 1px solid var(--accent); padding: 9px 18px; border-radius: 999px; }
+.btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn:hover { opacity: 0.85; }
 h2 { font: 600 1.35rem Inter, system-ui, sans-serif; margin: 44px 0 12px; letter-spacing: -0.01em; }
 p { margin: 0 0 1.1em; }
 .callout { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
