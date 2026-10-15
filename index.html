@@ -36,7 +36,7 @@
   <p>We design a bolt-on framework to turn any existing harness into an Actor-Gatherer harness: different agents from different harnesses connect to a common Gatherer component that, before every LLM call, sets their context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment.</p>
 
   <figure class="walkthrough" id="walkthrough">
-    <img id="wt-img" src="figures/walkthrough/01.png" alt="Actor-Gatherer harness walkthrough, step 1" width="914" height="742">
+    <img id="wt-img" src="figures/walkthrough/01.png?v=2" alt="Actor-Gatherer harness walkthrough, step 1" width="914" height="742">
     <figcaption id="wt-cap"></figcaption>
     <div class="wt-controls">
       <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
@@ -51,7 +51,7 @@
     var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
         cnt = document.getElementById('wt-count'),
         prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
-    function src(k) { return 'figures/walkthrough/' + String(k + 1).padStart(2, '0') + '.png'; }
+    function src(k) { return 'figures/walkthrough/' + String(k + 1).padStart(2, '0') + '.png?v=2'; }
     for (var k = 1; k < n; k++) { new Image().src = src(k); }
     function show(k) {
       i = Math.max(0, Math.min(n - 1, k));
