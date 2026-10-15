@@ -7,7 +7,7 @@
 <meta name="description" content="The Actor-Gatherer framework: proactive, external context management for AI agents.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <main>
@@ -32,15 +32,49 @@
     <span class="harness"><svg width="14" height="14" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#131010"/><path d="M320 224V352H192V224H320Z" fill="#5A5858"/><path fill-rule="evenodd" clip-rule="evenodd" d="M384 416H128V96H384V416ZM320 160H192V352H320V160Z" fill="#fff"/></svg><span>OpenCode</span></span>
   </div>
 
+  <p>Actor-Gatherer framework is a new paradigm in agent design where the context of agents is managed proactively and externally with another LLM. The Actor-Gatherer framework separates solving a task from the context management needed to do so. An <strong>Actor</strong> agent is responsible for performing the user-specified tasks, and a <strong>Gatherer</strong> component observes the Actor agent, as well as other agents and the environment, and decides what context should be provided to the Actor agent. The Gatherer decides the context based on the Actor’s task and actions, as well as any relevant external event (such as other Actors changing a relevant file).</p>
+  <p>We design a bolt-on framework to turn any existing harness into an Actor-Gatherer harness: different agents from different harnesses connect to a common Gatherer component that, before every LLM call, sets their context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment.</p>
+
+  <figure class="walkthrough" id="walkthrough">
+    <img id="wt-img" src="figures/walkthrough/01.png" alt="Actor-Gatherer harness walkthrough, step 1" width="914" height="742">
+    <figcaption id="wt-cap"></figcaption>
+    <div class="wt-controls">
+      <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
+      <span id="wt-count" aria-live="polite"></span>
+      <button type="button" id="wt-next" aria-label="Next step">Next &rarr;</button>
+    </div>
+  </figure>
+  <script>
+  (function () {
+    var caps = ["Actor 1 starts with an empty context.", "The user sends a message; the Gatherer records it.", "The Gatherer gives Actor 1 its context: the user message (U).", "Actor 1 acts on the environment.", "Meanwhile, another actor acts on the environment.", "The Gatherer observes the change.", "The Gatherer passes relevant context to the other actor.", "The environment reports Actor 1's action back to the Gatherer.", "The Gatherer appends Actor 1's ReAct step (U R).", "Actor 1 acts on the environment again.", "Meanwhile, the user talks to another actor.", "The Gatherer records that exchange.", "The Gatherer passes relevant context to the other actor.", "The environment reports Actor 1's action back to the Gatherer.", "The Gatherer appends Actor 1's next step (U R R).", "Actor 1 acts on the environment.", "Meanwhile, the user edits the environment directly.", "Actor 1's context is unchanged so far.", "The environment reports the changes to the Gatherer.", "The Gatherer replaces the user message with curated context (G R R), including what changed.", "Actor 1 acts on the environment.", "Another actor acts on the environment again.", "The Gatherer observes the change.", "The Gatherer passes relevant context to the other actor.", "The environment reports back to the Gatherer.", "The Gatherer appends a new Gatherer message to Actor 1's context (G R R G).", "Actor 1 responds to the user.", "Actor 1's final context: relevant information included, irrelevant information left out."];
+    var n = caps.length, i = 0;
+    var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
+        cnt = document.getElementById('wt-count'),
+        prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
+    function src(k) { return 'figures/walkthrough/' + String(k + 1).padStart(2, '0') + '.png'; }
+    for (var k = 1; k < n; k++) { new Image().src = src(k); }
+    function show(k) {
+      i = Math.max(0, Math.min(n - 1, k));
+      img.src = src(i);
+      img.alt = 'Actor-Gatherer harness walkthrough, step ' + (i + 1) + ': ' + caps[i];
+      cap.textContent = caps[i];
+      cnt.textContent = (i + 1) + ' / ' + n;
+      prev.disabled = i === 0; next.disabled = i === n - 1;
+    }
+    prev.onclick = function () { show(i - 1); };
+    next.onclick = function () { show(i + 1); };
+    document.getElementById('walkthrough').addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') show(i - 1);
+      if (e.key === 'ArrowRight') show(i + 1);
+    });
+    show(0);
+  })();
+  </script>
+
   <h2>The problem</h2>
   <p>Users perform interrelated tasks (e.g., build different features on a code base) using agents over long-running sessions and often in parallel, creating a large amount of evolving historical data that new tasks often depend on. This data is often too large to fit in an LLM’s context window, and various context management policies have been introduced to decide what information goes in the LLM’s context.</p>
   <p>Broadly, existing techniques either rely on summarization, e.g., Codex includes a summary of the history in context, or tool-based access, where the agent itself can search the history using tools. However, summarization is lossy, and tool-based access requires agents to know what information to search for, causing errors when <strong><em>unknown unknowns</em></strong> are present: when an agent is missing a piece of information but is unaware that it is missing information.</p>
 
-  <h2>Our approach</h2>
-  <p>We propose the Actor-Gatherer framework, a paradigm shift in agent design where the context of agents is managed proactively and externally with another LLM. Unlike tool-based approaches, the Actor-Gatherer framework separates solving a task from the context management needed to do so. An <strong>Actor</strong> agent is responsible for performing the user-specified tasks, and a <strong>Gatherer</strong> component observes the Actor agent, as well as other agents and the environment, and decides what context should be provided to the Actor agent. The Gatherer decides the context based on the Actor’s task and actions, as well as any relevant external event (such as other Actors changing a relevant file).</p>
-  <p>We design a bolt-on framework to turn any existing harness into an Actor-Gatherer harness: different agents from different harnesses connect to a common Gatherer component that, before every LLM call, sets their context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment.</p>
-  <p>Current integrations:</p>
-  <div class="tags"><span class="tag">Claude Code</span><span class="tag">Codex</span><span class="tag">OpenCode</span><span class="tag">Pi</span></div>
 
   <h2 id="results">Results</h2>
   <p>We evaluated the Actor-Gatherer framework across coding and data analysis tasks, using it for context management of a Codex agent, referred to as AG-Codex. Fig. 1 shows the results in single-agent settings, where relevant context must include information from past interactions with the same agent. Fig. 2 shows the results when multiple agents perform tasks in parallel, so relevant context must include information from interactions with other agents or changes in the environment.</p>

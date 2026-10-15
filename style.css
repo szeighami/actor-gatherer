@@ -55,3 +55,13 @@ h3 { font: 600 1.08rem Inter, system-ui, sans-serif; margin: 30px 0 8px; }
   margin: 14px 0 0; font: 0.88rem Inter, system-ui, sans-serif; color: var(--muted); }
 .harness { display: inline-flex; align-items: center; gap: 5px; color: var(--fg); font-weight: 500; }
 .harness svg { width: 1em; height: 1em; flex: none; }
+.walkthrough { margin: 28px auto; max-width: 600px; }
+.walkthrough img { width: 100%; height: auto; display: block; border-radius: 6px; background: #fff; }
+.walkthrough figcaption { min-height: 2.9em; }
+.wt-controls { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 8px;
+  font: 0.88rem Inter, system-ui, sans-serif; color: var(--muted); }
+.wt-controls button { font: 500 0.9rem Inter, system-ui, sans-serif; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.wt-controls button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.wt-controls button:disabled { opacity: 0.4; cursor: default; }
+#wt-count { min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
