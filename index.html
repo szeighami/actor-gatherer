@@ -47,7 +47,7 @@
   </figure>
   <script>
   (function () {
-    var caps = ["Without a Gatherer, Actors, the user and the environment interact directly, and each Actor must manage its own context.", "The Gatherer sits in the middle, observing every interaction and providing context to each Actor.", "The Gatherer observes the Actor's own interactions: messages from the user and actions on the environment.", "The Gatherer also observes everything else: other Actors, the user and changes to the environment.", "From what it observes, the Gatherer decides what context each Actor receives."];
+    var caps = ["Actors are agents that interact with the user and the environment.", "The Gatherer observes every interaction between user, actors and the environment and sets the context for each Actor.", "The Gatherer observes messages from user and environment to the Actor", "The Gatherer also observes interactions between other agents and the environment.", "Based on all available information, the Gatherer decides what context each Actor receives."];
     var n = caps.length, i = 0;
     var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
         cnt = document.getElementById('wt-count'),
