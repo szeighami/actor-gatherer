@@ -37,7 +37,7 @@
   <p>We design a bolt-on framework to turn any existing coding agent into one that uses the Actor-Gatherer framework: different agents from different harnesses connect to a common Gatherer component, that, before every LLM call, sets its context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment. <strong>We have currently built integrations for Claude Code, Codex, OpenCode and Pi, and are actively expanding the set of integrations.</strong></p>
 
   <figure class="walkthrough" id="walkthrough">
-    <img id="wt-img" src="figures/walkthrough/01.png?v=3" alt="Actor-Gatherer harness walkthrough, step 1" width="914" height="482">
+    <img id="wt-img" src="figures/gatherer/01.svg" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
     <figcaption id="wt-cap"></figcaption>
     <div class="wt-controls">
       <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
@@ -47,17 +47,17 @@
   </figure>
   <script>
   (function () {
-    var caps = ["Actor 1 starts with an empty context.", "The user sends a message; the Gatherer records it.", "The Gatherer gives Actor 1 its context: the user message (U).", "Actor 1 acts on the environment.", "Meanwhile, another actor acts on the environment.", "The Gatherer observes the change.", "The Gatherer passes relevant context to the other actor.", "The environment reports Actor 1's action back to the Gatherer.", "The Gatherer appends Actor 1's ReAct step (U R).", "Actor 1 acts on the environment again.", "Meanwhile, the user talks to another actor.", "The Gatherer records that exchange.", "The Gatherer passes relevant context to the other actor.", "The environment reports Actor 1's action back to the Gatherer.", "The Gatherer appends Actor 1's next step (U R R).", "Actor 1 acts on the environment.", "Meanwhile, the user edits the environment directly.", "Actor 1's context is unchanged so far.", "The environment reports the changes to the Gatherer.", "The Gatherer replaces the user message with curated context (G R R), including what changed.", "Actor 1 acts on the environment.", "Another actor acts on the environment again.", "The Gatherer observes the change.", "The Gatherer passes relevant context to the other actor.", "The environment reports back to the Gatherer.", "The Gatherer appends a new Gatherer message to Actor 1's context (G R R G).", "Actor 1 responds to the user.", "Actor 1's final context: relevant information included, irrelevant information left out."];
+    var caps = ["Without a Gatherer, Actors, the user and the environment interact directly, and each Actor must manage its own context.", "The Gatherer sits in the middle, observing every interaction and providing context to each Actor.", "The Gatherer observes the Actor's own interactions: messages from the user and actions on the environment.", "The Gatherer also observes everything else: other Actors, the user and changes to the environment.", "From what it observes, the Gatherer decides what context each Actor receives."];
     var n = caps.length, i = 0;
     var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
         cnt = document.getElementById('wt-count'),
         prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
-    function src(k) { return 'figures/walkthrough/' + String(k + 1).padStart(2, '0') + '.png?v=3'; }
+    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.svg'; }
     for (var k = 1; k < n; k++) { new Image().src = src(k); }
     function show(k) {
       i = Math.max(0, Math.min(n - 1, k));
       img.src = src(i);
-      img.alt = 'Actor-Gatherer harness walkthrough, step ' + (i + 1) + ': ' + caps[i];
+      img.alt = 'Actor-Gatherer architecture, step ' + (i + 1) + ': ' + caps[i];
       cap.textContent = caps[i];
       cnt.textContent = (i + 1) + ' / ' + n;
       prev.disabled = i === 0; next.disabled = i === n - 1;
