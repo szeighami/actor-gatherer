@@ -13,13 +13,18 @@
 <main>
   <header>
     <h1>The Actor-Gatherer Framework for AI Agents</h1>
-    <p class="subtitle">Proactive, external context management for long-running and parallel agents</p>
+    <p class="subtitle">Proactive context management for agents, curated from long-running sessions, parallel agents, and the environment</p>
     <div class="buttons">
       <a class="btn" href="https://github.com/szeighami/actor-gatherer">Code</a>
       <a class="btn secondary" href="#results">Results</a>
       <a class="btn secondary" href="blog.html">Blog post</a>
     </div>
   </header>
+
+  <div class="stats">
+    <a class="stat" href="#results"><span class="num">+32%</span><span class="lbl">more accurate than state-of-the-art in single sessions</span></a>
+    <a class="stat" href="#results"><span class="num">+31%</span><span class="lbl">more accurate with parallel agents and changes to the environment</span></a>
+  </div>
 
   <h2>The problem</h2>
   <p>Users perform interrelated tasks (e.g., build different features on a code base) using agents over long-running sessions and often in parallel, creating a large amount of evolving historical data that new tasks often depend on. This data is often too large to fit in an LLM’s context window, and various context management policies have been introduced to decide what information goes in the LLM’s context.</p>
