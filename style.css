@@ -47,6 +47,7 @@ h3 { font: 600 1.08rem Inter, system-ui, sans-serif; margin: 30px 0 8px; }
 .lead { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin: 0 0 8px; }
 .back { font: 500 0.9rem Inter, system-ui, sans-serif; text-decoration: none; }
 .more { margin-top: 36px; }
+.hero { display: block; width: 100%; height: auto; border-radius: 14px; margin: 0 0 28px; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; margin: 0 0 8px; padding: 18px 0;
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .stat { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
