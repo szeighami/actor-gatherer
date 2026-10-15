@@ -83,12 +83,12 @@
 <path id="Vector_33" d="M222 136H196" stroke="#FFF1F2" stroke-width="3"/>
 <path id="Vector_34" d="M222 136H196" stroke="#FB7185" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.01 4"/>
 </g>
-<g id="arrow user&#60;-&#62;environment">
-<path id="Vector_35" d="M246.881 66.1211L171.121 109.881" stroke="#7C3AED" stroke-width="2.66" stroke-linecap="round"/>
-<path id="Vector_36" d="M174.312 103.417L171.121 109.881L178.318 110.338" stroke="#7C3AED" stroke-width="2.66" stroke-linecap="round" stroke-linejoin="round"/>
-<path id="Vector_37" d="M239.687 65.6548L246.881 66.1213L243.681 72.5835" stroke="#7C3AED" stroke-width="2.66" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="arrow user&#60;-&#62;environment" opacity="0.25">
+<path id="Vector_35" d="M246.881 66.1211L171.121 109.881" stroke="#475569" stroke-width="1.4" stroke-linecap="round"/>
+<path id="Vector_36" d="M174.312 103.417L171.121 109.881L178.318 110.338" stroke="#475569" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_37" d="M239.687 65.6548L246.881 66.1213L243.681 72.5835" stroke="#475569" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
 <path id="Vector_38" d="M222.001 80.4922L196.001 95.5101" stroke="#FFF1F2" stroke-width="3"/>
-<path id="Vector_39" d="M222.001 80.4922L196.001 95.5101" stroke="#7C3AED" stroke-width="3.8" stroke-linecap="round"/>
+<path id="Vector_39" d="M222.001 80.4922L196.001 95.5101" stroke="#FB7185" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.01 4"/>
 </g>
 <g id="arrow user-gatherer (toward other agents)">
 <path id="Vector_40" d="M246 40H222" stroke="#7C3AED" stroke-width="2.66"/>

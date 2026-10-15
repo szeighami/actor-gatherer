@@ -37,7 +37,7 @@
   <p>We design a bolt-on framework to turn any existing coding agent into one that uses the Actor-Gatherer framework: different agents from different harnesses connect to a common Gatherer component, that, before every LLM call, sets its context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment. <strong>We have currently built integrations for Claude Code, Codex, OpenCode and Pi, and are actively expanding the set of integrations.</strong></p>
 
   <figure class="walkthrough" id="walkthrough">
-    <img id="wt-img" src="figures/gatherer/01.svg?v=2" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
+    <img id="wt-img" src="figures/gatherer/01.svg?v=3" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
     <figcaption id="wt-cap"></figcaption>
     <div class="wt-controls">
       <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
@@ -47,12 +47,12 @@
   </figure>
   <script>
   (function () {
-    var caps = ["Actors are agents that interact with the user and the environment.", "The Gatherer observes every interaction between user, actors and the environment and sets the context for each Actor.", "The Gatherer observes messages from user and environment to the Actor.", "The Gatherer also observes interactions between other agents and the environment.", "Based on all available information, the Gatherer decides what context each Actor receives."];
+    var caps = ["Actors are agents that interact with the user and the environment.", "The Gatherer observes every interaction between user, actors and the environment and sets the context for each Actor.", "The Gatherer observes messages from user and environment to the Actor.", "The Gatherer also observes interactions of other agents with the user and the environment.", "The Gatherer also observes interactions between the user and the environment.", "Based on all available information, the Gatherer decides what context each Actor receives."];
     var n = caps.length, i = 0;
     var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
         cnt = document.getElementById('wt-count'),
         prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
-    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.svg?v=2'; }
+    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.svg?v=3'; }
     for (var k = 1; k < n; k++) { new Image().src = src(k); }
     function show(k) {
       i = Math.max(0, Math.min(n - 1, k));
