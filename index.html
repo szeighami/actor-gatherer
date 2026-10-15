@@ -36,7 +36,7 @@
   <p>Actor-Gatherer framework is a new paradigm in agent design where the context of agents is managed proactively and externally with another LLM. The Actor-Gatherer framework separates solving a task from the context management needed to do so. An <strong>Actor</strong> agent is responsible for performing the user-specified tasks, and a <strong>Gatherer</strong> component observes the Actor agent, as well as other agents and the environment, and decides what context should be provided to the Actor agent. The Gatherer decides the context based on the Actor’s task and actions, as well as any relevant external event (such as other Actors changing a relevant file). Actor-Gatherer is particularly useful for context management in long-running, sharing context across sessions and agents, and when environment changes (e.g., working in parallel with agents).</p>
 
   <figure class="walkthrough" id="walkthrough">
-    <img id="wt-img" src="figures/gatherer/01.png" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
+    <img id="wt-img" src="figures/gatherer/01.svg" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
     <figcaption id="wt-cap"></figcaption>
     <div class="wt-controls">
       <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
@@ -51,7 +51,7 @@
     var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
         cnt = document.getElementById('wt-count'),
         prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
-    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.png'; }
+    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.svg'; }
     for (var k = 1; k < n; k++) { new Image().src = src(k); }
     function show(k) {
       i = Math.max(0, Math.min(n - 1, k));
