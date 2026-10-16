@@ -148,3 +148,4 @@ main.doc footer { text-align: left; }
   .sidebar.open { transform: none; }
   main.doc { padding: 24px 16px 64px; }
 }
+main.doc h1 + h2 { margin-top: 8px; }
