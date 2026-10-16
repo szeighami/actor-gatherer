@@ -192,21 +192,31 @@ options = { show = 3 }</code></pre>
   <p>Two entries can name the same class with different options; each is a separate policy, and a gatherer picks one by name (<code>ag --gatherer small --policy pcm_small codex</code>).</p>
 
   <h3 id="llm"><code>[policies.llm]</code></h3>
-  <p>The LLM the policy calls (to split history into tasks, summarize them, and rank them). Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default model; set one here or with <a href="#commands"><code>ag model</code></a>.</p>
+  <p>The LLM the policy calls (to split history into tasks, summarize them, and rank them). There is no default model; set one here or with <a href="#commands"><code>ag model</code></a>. The model's name decides how it is called:</p>
+  <ul>
+    <li><strong>A coding agent</strong>, <code>claude-code/&lt;model&gt;</code> or <code>codex/&lt;model&gt;</code> (e.g. <code>claude-code/sonnet</code>): runs Claude Code (<code>claude -p</code>) or Codex for each call, on that agent's own login, with its tools and default instructions out of the way. No API key is needed, and every call counts against the subscription's limits. Codex models need the <code>openai-codex</code> package, which <code>pip install -r requirements.txt</code> installs.</li>
+    <li><strong>Any other name</strong>, <code>provider/model</code> (e.g. <code>gemini/gemini-3.8-flash</code>): called through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, with the provider's API key.</li>
+  </ul>
 <pre><code>[policies.llm]
-model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM names it
-# api_base = "http://127.0.0.1:4011/v1"  # send every call to a LiteLLM proxy or another OpenAI-compatible server
-# key_env = "LITELLM_KEY"                # read the key from this variable (default: the provider's own)
+model = "gemini/gemini-3.8-flash"        # required: claude-code/&lt;model&gt;, codex/&lt;model&gt;, or "provider/model" for LiteLLM
+# api_base = "http://127.0.0.1:4011/v1"  # LiteLLM: send every call to a LiteLLM proxy or another OpenAI-compatible server
+# key_env = "LITELLM_KEY"                # LiteLLM: read the key from this variable (default: the provider's own)
+# claude_command = "claude"              # claude-code: the Claude Code to run
+# codex_command = "codex"                # codex: the Codex to run
 # log_prompts = true                     # also keep each call's full prompt in its log</code></pre>
   <div class="table-wrap"><table>
-    <thead><tr><th>key</th><th>default</th><th>meaning</th><th>overridden by</th></tr></thead>
+    <thead><tr><th>key</th><th>for</th><th>default</th><th>meaning</th><th>overridden by</th></tr></thead>
     <tbody>
-      <tr><td><code>model</code></td><td>none</td><td>The model, <code>"provider/model"</code>. Without one, <code>ag</code> warns at launch and every Gatherer call fails.</td><td><code>AG_LLM_MODEL</code></td></tr>
-      <tr><td><code>api_base</code></td><td>the provider's</td><td>Send every call to this server instead.</td><td><code>AG_LLM_URL</code></td></tr>
-      <tr><td><code>key_env</code></td><td>the provider's variable</td><td>The environment variable that holds the API key.</td><td><code>AG_LLM_KEY</code> (the key itself)</td></tr>
-      <tr><td><code>log_prompts</code></td><td><code>false</code></td><td>Keep each call's system text and prompt, whole, in <code>~/.ag/logs/llm/</code>. Usage, timing and the answer are always logged.</td><td></td></tr>
+      <tr><td><code>model</code></td><td>all</td><td>none</td><td>The model, as above. Without one, <code>ag</code> warns at launch and every Gatherer call fails.</td><td><code>AG_LLM_MODEL</code></td></tr>
+      <tr><td><code>api_base</code></td><td>LiteLLM</td><td>the provider's</td><td>Send every call to this server instead.</td><td><code>AG_LLM_URL</code></td></tr>
+      <tr><td><code>key_env</code></td><td>LiteLLM</td><td>the provider's variable</td><td>The environment variable that holds the API key.</td><td><code>AG_LLM_KEY</code> (the key itself)</td></tr>
+      <tr><td><code>claude_command</code></td><td>claude-code</td><td><code>"claude"</code></td><td>The Claude Code executable, found on <code>PATH</code>.</td><td></td></tr>
+      <tr><td><code>codex_command</code></td><td>codex</td><td><code>"codex"</code></td><td>The Codex executable, found on <code>PATH</code>.</td><td></td></tr>
+      <tr><td><code>log_prompts</code></td><td>all</td><td><code>false</code></td><td>Keep each call's system text and prompt, whole, in <code>~/.ag/logs/llm/</code>. Usage, timing and the answer are always logged.</td><td></td></tr>
+      <tr><td><code>class</code></td><td>your own</td><td>none</td><td>An LLM implementation of your own, named like a policy's <code>class</code> (with <code>file</code> or <code>module</code> if needed), instead of the two above.</td><td></td></tr>
     </tbody>
   </table></div>
+  <p>The Gatherer's own calls to Claude Code or Codex run without <code>ag</code>'s environment, so they never come back through <code>ag</code>.</p>
 
   <h3 id="pollers"><code>[pollers]</code></h3>
 <pre><code>[pollers]
