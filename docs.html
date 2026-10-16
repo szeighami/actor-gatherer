@@ -24,8 +24,8 @@
     </ul>
     <p class="side-group"><a href="#connections">Harness connection</a></p>
     <ul>
-      <li><a href="#proxy-based">Proxy-based harnesses</a></li>
       <li><a href="#hook-based">Hook-based harnesses</a></li>
+      <li><a href="#proxy-based">Proxy-based harnesses</a></li>
       <li><a href="#connection-table">Each harness</a></li>
     </ul>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
@@ -86,16 +86,7 @@
   <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
 
   <h2 id="connections">Harness connection</h2>
-  <p>Each harness is connected to the Gatherer in one of two ways, depending on what the harness supports. Either way, the harness's <strong>launcher</strong> sets the connection up for one run, and the harness's <strong>adaptor</strong> turns its messages into events and the Gatherer's context back into messages. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did. If the Gatherer fails or times out, the harness sends its own messages unchanged.</p>
-
-  <h3 id="proxy-based">Proxy-based harnesses</h3>
-  <p>A harness that calls its model over HTTP, and lets you change where those calls go, is connected through a <strong>proxy</strong>: a local hook server that sits between the harness and its model's API. Claude Code and Codex are connected this way.</p>
-  <ul>
-    <li>The launcher points the harness's API base URL at the proxy, for this run only. The proxy relays to wherever the harness pointed before (the <em>upstream</em>).</li>
-    <li>On every request that is a model call, the proxy runs the adaptor on the request's messages, sends the events to the Gatherer, and forwards the request with the context in place of the messages. Every other request passes through untouched, and the answer streams back unchanged.</li>
-    <li>The gatherer is passed in the URL path, <code>/h/&lt;gatherer&gt;/</code>, and the channel is the harness's session (a Claude Code session, a Codex thread), read from the request.</li>
-    <li>Proxies run detached: the first run with a given upstream starts one, and later runs and other sessions reuse it. <code>ag status</code> lists them and <code>ag stop</code> stops them.</li>
-  </ul>
+  <p>Each harness is connected to the Gatherer through a hook, if it has one, and otherwise through a proxy. Either way, the harness's <strong>launcher</strong> sets the connection up for one run, and the harness's <strong>adaptor</strong> turns its messages into events and the Gatherer's context back into messages. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did. If the Gatherer fails or times out, the harness sends its own messages unchanged.</p>
 
   <h3 id="hook-based">Hook-based harnesses</h3>
   <p>A harness with a plugin system that can change the messages before each model call is connected through a <strong>hook</strong>: a plugin that <code>ag</code> loads into the harness. Pi (an extension) and OpenCode (a plugin) are connected this way.</p>
@@ -106,14 +97,23 @@
     <li>The harness's own compaction is turned off while the Gatherer answers, since the Gatherer now decides what the context holds. Set <code>AG_PI_COMPACTION=allow</code> or <code>AG_OPENCODE_COMPACTION=allow</code> to keep it on.</li>
   </ul>
 
+  <h3 id="proxy-based">Proxy-based harnesses</h3>
+  <p>A harness without such a hook is connected through a <strong>proxy</strong>: a local server that sits between the harness and its model's API, and changes each model call on its way there. This works for any harness that calls its model over HTTP and lets you change where those calls go. Claude Code and Codex are connected this way.</p>
+  <ul>
+    <li>The launcher points the harness's API base URL at the proxy, for this run only. The proxy relays to wherever the harness pointed before (the <em>upstream</em>).</li>
+    <li>On every request that is a model call, the proxy runs the adaptor on the request's messages, sends the events to the Gatherer, and forwards the request with the context in place of the messages. Every other request passes through untouched, and the answer streams back unchanged.</li>
+    <li>The gatherer is passed in the URL path, <code>/h/&lt;gatherer&gt;/</code>, and the channel is the harness's session (a Claude Code session, a Codex thread), read from the request.</li>
+    <li>Proxies run detached: the first run with a given upstream starts one, and later runs and other sessions reuse it. <code>ag status</code> lists them and <code>ag stop</code> stops them.</li>
+  </ul>
+
   <h3 id="connection-table">Each harness</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>harness</th><th>type</th><th>what the launcher does</th><th>gatherer</th><th>channel</th><th>the Gatherer's own messages arrive as</th><th>turned off</th></tr></thead>
     <tbody>
-      <tr><td>Claude Code</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points <code>ANTHROPIC_BASE_URL</code> at it.</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the session</td><td>system messages, or user-turn reminders (<code>system_messages</code>)</td><td>nothing</td></tr>
-      <tr><td>Codex</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points the active provider's <code>base_url</code> at it (<code>-c</code>).</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the thread</td><td>developer messages (<code>AG_CODEX_AG_ROLE=user</code>: user messages)</td><td>nothing</td></tr>
       <tr><td>Pi</td><td>hook</td><td>Loads the extension with <code>-e</code>, unless Pi already has the package installed.</td><td><code>--ag-gatherer NAME</code></td><td>the session</td><td>a hidden custom message</td><td>Pi's compaction</td></tr>
       <tr><td>OpenCode</td><td>hook</td><td>Adds the plugin through <code>OPENCODE_CONFIG_CONTENT</code>.</td><td>the plugin's <code>gatherer</code> option</td><td>the session</td><td>a synthetic user message</td><td>auto-compaction and tool-output pruning</td></tr>
+      <tr><td>Claude Code</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points <code>ANTHROPIC_BASE_URL</code> at it.</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the session</td><td>system messages, or user-turn reminders (<code>system_messages</code>)</td><td>nothing</td></tr>
+      <tr><td>Codex</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points the active provider's <code>base_url</code> at it (<code>-c</code>).</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the thread</td><td>developer messages (<code>AG_CODEX_AG_ROLE=user</code>: user messages)</td><td>nothing</td></tr>
     </tbody>
   </table></div>
   <p>A new harness can be connected either way; see <a href="#write-adaptor">Writing an adaptor for a new harness</a>.</p>
@@ -532,7 +532,7 @@ args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
     <li>A <strong>hook</strong> in the harness calls the Gatherer before each model call.</li>
     <li>A <strong>launcher</strong> starts the harness with that hook in place, for one run.</li>
   </ul>
-  <p>A new harness can be <a href="#proxy-based">proxy-based</a>, like Claude Code and Codex, or <a href="#hook-based">hook-based</a>, like Pi and OpenCode.</p>
+  <p>A new harness can be <a href="#hook-based">hook-based</a>, like Pi and OpenCode, or, if it has no hook, <a href="#proxy-based">proxy-based</a>, like Claude Code and Codex.</p>
 
   <h4>The adaptor</h4>
   <p>An adaptor is a Python subclass of <code>Adaptor</code> (<code>integrations/tools/ag_orchestrator/adaptor.py</code>), or a TypeScript class implementing <code>Adaptor&lt;M&gt;</code> (<code>adaptor.ts</code>) with the same declarations as static fields (<code>adaptorName</code>, <code>outputs</code>, <code>accepts</code>, <code>properties</code>):</p>
