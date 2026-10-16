@@ -18,6 +18,8 @@
 <aside class="sidebar" id="sidebar">
   <nav aria-label="Documentation">
     <p class="side-group"><a href="#overview">Overview</a></p>
+    <p class="side-group"><a href="#install">Install</a></p>
+    <p class="side-group"><a href="#quickstart">Quickstart</a></p>
     <p class="side-group"><a href="#cli"><code>ag</code> CLI interface</a></p>
     <ul>
       <li><a href="#options">Options</a></li>
@@ -47,7 +49,7 @@
 <main class="doc">
   <h1>Documentation</h1>
   <h2 id="overview">Overview</h2>
-  <p><code>ag</code> runs a coding agent you already use (Claude Code, Codex, OpenCode or Pi) with a <strong>Gatherer</strong> in front of every model call. Before each call, the agent's messages go to the Gatherer, which stores them as events and decides what context the model gets: the current conversation, plus what matters from earlier history, from other agents, and from the environment. These docs describe <a href="#configuration">every setting</a> (the context policy, the pollers, the harnesses and the environment variables), and <a href="#extending">how to add</a> your own context policies, pollers and adaptors. For installing <code>ag</code> and a quickstart, see the README in the <a href="https://github.com/szeighami/actor-gatherer">code repository</a>.</p>
+  <p>Actor-Gatherer is a framework for agent design where agents context is managed proactively and externally using a Gatherer component. <code>ag</code> is a cli tool that turns any coding agent (Claude Code, Codex, OpenCode or Pi) into an actor-gatherer agent. The agent performing your tasks is called an Actor, and a <strong>Gatherer</strong> component manages the context of all actors connected to it. The Actors share all their messages with the Gatherer, and before every LLM call, they ask the Gatherer for their context. The Gatherer decides the context the model gets based on the current conversation, plus what matters from earlier history, from other agents, and from the environment. These docs here describe the <code>ag</code> tool, its configuration <a href="#configuration">every setting</a> (the context policy, the pollers, the harnesses and the environment variables), and <a href="#extending">how to add</a> your own context policies, pollers and adaptors for new harnisses. To get started, see <a href="#install">Install</a> and <a href="#quickstart">Quickstart</a>.</p>
 
   <figure class="wide full"><img src="figures/architecture.png" alt="Actor-Gatherer architecture: each Actor, a harness plus its adaptor, calls insert and get_context on the Gatherer, which holds the context and insertion policy and a database; pollers watch the environment and insert events."><figcaption>Each Actor (a harness and its adaptor) sends what it sees and does to the Gatherer, and gets its context back before each model call. Pollers bring in changes from the environment, and the Gatherer's policy decides what context each Actor gets.</figcaption></figure>
   <div class="table-wrap"><table>
@@ -61,6 +63,34 @@
       <tr><td><strong>launcher</strong></td><td>Per-harness code that starts the harness with the Gatherer connected, for one run.</td></tr>
     </tbody>
   </table></div>
+
+  <h2 id="install">Install</h2>
+  <p>You need Python 3.11+ and the harness you want to run on your <code>PATH</code>.</p>
+<pre><code>git clone https://github.com/szeighami/actor-gatherer &amp;&amp; cd actor-gatherer
+pip install -r requirements.txt    # the `ag` command and every dependency</code></pre>
+  <p>You can symlink the script instead of installing it: <code>ln -s $PWD/cli/ag ~/.local/bin/ag</code>.</p>
+  <p><strong>Then set the LLM the Gatherer calls.</strong> Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default, so name one and set that provider's key:</p>
+<pre><code>ag model gemini/gemini-3.8-flash             # "provider/model"; the key from GEMINI_API_KEY
+export GEMINI_API_KEY=...
+
+ag model gemini-3.8-flash --api-base http://127.0.0.1:4011/v1 --key-env LITELLM_KEY
+                                             # or every call through a LiteLLM proxy
+ag model                                     # show the current setting</code></pre>
+  <p><code>ag model</code> writes <a href="#llm"><code>[policies.llm]</code></a> in <code>~/.ag/config.toml</code>, and every gatherer uses it from its next call. A flag you leave out keeps its value, and <code>--api-base ""</code> or <code>--key-env ""</code> clears one. <code>AG_LLM_MODEL</code>, <code>AG_LLM_URL</code> (the <code>api_base</code>) and <code>AG_LLM_KEY</code> override the file. Without a model, <code>ag</code> warns at launch, and every call the Gatherer makes fails (logged in <code>~/.ag/logs/llm/</code>).</p>
+
+  <h2 id="quickstart">Quickstart</h2>
+  <p>Put <code>ag --gatherer NAME</code> in front of the agent command you would normally run. Every session in the same gatherer shares context, whichever harness runs it:</p>
+<pre><code>ag --gatherer demo claude                                # Claude Code
+ag --gatherer demo codex exec "fix the tests"            # Codex
+ag --gatherer demo opencode run "add a --verbose flag"   # OpenCode
+ag --gatherer demo pi                                    # Pi</code></pre>
+  <p>Without <code>--gatherer</code>, a session joins the gatherer <code>default</code>:</p>
+<pre><code>ag codex                                                 # the same as: ag --gatherer default codex</code></pre>
+  <p><code>--gatherer .</code> creates a new gatherer, named after the agent session, so that session shares context with no other:</p>
+<pre><code>ag --gatherer . codex</code></pre>
+  <p>To see every gatherer:</p>
+<pre><code>ag gatherers                                             # each one's policy, pollers, event count, last activity</code></pre>
+  <p>Every option and command is in <a href="#cli"><code>ag</code> CLI interface</a>.</p>
 
   <h2 id="cli"><code>ag</code> CLI interface</h2>
   <p><code>ag</code> is the command line that runs a harness with the Gatherer, and manages the gatherers and settings it keeps. Its options go before the harness's name, and everything after the name is passed to the harness unchanged.</p>
