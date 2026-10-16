@@ -20,13 +20,17 @@
     <p class="side-group"><a href="#overview">Overview</a></p>
     <ul>
       <li><a href="#concepts">Concepts</a></li>
-      <li><a href="#home">The home directory</a></li>
     </ul>
     <p class="side-group"><a href="#connections">Harness connection</a></p>
     <ul>
       <li><a href="#hook-based">Hook-based harnesses</a></li>
       <li><a href="#proxy-based">Proxy-based harnesses</a></li>
       <li><a href="#connection-table">Each harness</a></li>
+    </ul>
+    <p class="side-group"><a href="#cli">The ag CLI</a></p>
+    <ul>
+      <li><a href="#commands">Commands</a></li>
+      <li><a href="#home">The home directory</a></li>
     </ul>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
     <ul>
@@ -38,7 +42,6 @@
       <li><a href="#pollers">Pollers</a></li>
       <li><a href="#harnesses">Harnesses</a></li>
       <li><a href="#env">Environment variables</a></li>
-      <li><a href="#commands">Commands</a></li>
     </ul>
     <p class="side-group"><a href="#extending">Extending ag</a></p>
     <ul>
@@ -67,23 +70,6 @@
       <tr><td><strong>launcher</strong></td><td>Per-harness code that starts the harness with the Gatherer connected, for one run.</td></tr>
     </tbody>
   </table></div>
-
-  <h3 id="home">The home directory</h3>
-  <p>Everything <code>ag</code> keeps is in one directory, <code>~/.ag</code> (set <code>AG_HOME</code> to move it). Each gatherer has a directory of its own, with its settings and its database:</p>
-<pre><code>~/.ag/
-├── config.toml                     every setting: policies, pollers, the LLM, harnesses
-├── plugins/                        your own policies and pollers (Python files)
-├── gatherers/&lt;name&gt;/               one directory per gatherer:
-│   ├── gatherer.toml               its policy, its options and its pollers
-│   └── context.db                  its database (SQLite): every event, and every context it sent
-├── hook_server/&lt;port&gt;.json         the proxies ag started (Claude Code, Codex)
-└── logs/
-    ├── gatherers/&lt;name&gt;/server.log what each model call came to
-    ├── gatherers/&lt;name&gt;/worker.log the gatherer's background builds
-    ├── &lt;harness&gt;_server.log        each Gatherer server's own output
-    ├── hook_servers/&lt;port&gt;.log     each proxy's output
-    └── llm/                        one JSON file per LLM call the policies make</code></pre>
-  <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
 
   <h2 id="connections">Harness connection</h2>
   <p>Each harness is connected to the Gatherer through a hook, if it has one, and otherwise through a proxy. Either way, the harness's <strong>launcher</strong> sets the connection up for one run, and the harness's <strong>adaptor</strong> turns its messages into events and the Gatherer's context back into messages. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did. If the Gatherer fails or times out, the harness sends its own messages unchanged.</p>
@@ -118,6 +104,42 @@
   </table></div>
   <p>A new harness can be connected either way; see <a href="#write-adaptor">Writing an adaptor for a new harness</a>.</p>
 
+  <h2 id="cli">The ag CLI</h2>
+  <p><code>ag</code> is the command line that runs a harness with the Gatherer, and manages the gatherers and settings it keeps. Its options go before the harness's name, and everything after the name is passed to the harness unchanged.</p>
+
+  <h3 id="commands">Commands</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>command</th><th>does</th></tr></thead>
+    <tbody>
+      <tr><td><code>ag &lt;harness&gt; [args]</code></td><td>Run the harness with the Gatherer.</td></tr>
+      <tr><td><code>ag model [NAME] [--api-base URL] [--key-env VAR]</code></td><td>Show or set the LLM the Gatherer calls.</td></tr>
+      <tr><td><code>ag config</code></td><td>Show where the settings are, and what each harness resolves to.</td></tr>
+      <tr><td><code>ag status</code> / <code>ag stop</code></td><td>List / stop the proxies <code>ag</code> started.</td></tr>
+      <tr><td><code>ag gatherers</code></td><td>List every gatherer: its policy, pollers, events and last activity.</td></tr>
+      <tr><td><code>ag show &lt;gatherer&gt;</code></td><td>Show a gatherer's resolved settings.</td></tr>
+      <tr><td><code>ag new &lt;gatherer&gt; [--policy P] [--poller X ... | --no-pollers]</code></td><td>Create a gatherer ahead of use.</td></tr>
+      <tr><td><code>ag home list</code></td><td>List every available policy and poller, and any problem.</td></tr>
+      <tr><td><code>ag home path</code></td><td>Print the home directory.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="home">The home directory</h3>
+  <p>Everything <code>ag</code> keeps is in one directory, <code>~/.ag</code> (set <code>AG_HOME</code> to move it). Each gatherer has a directory of its own, with its settings and its database:</p>
+<pre><code>~/.ag/
+├── config.toml                     every setting: policies, pollers, the LLM, harnesses
+├── plugins/                        your own policies and pollers (Python files)
+├── gatherers/&lt;name&gt;/               one directory per gatherer:
+│   ├── gatherer.toml               its policy, its options and its pollers
+│   └── context.db                  its database (SQLite): every event, and every context it sent
+├── hook_server/&lt;port&gt;.json         the proxies ag started (Claude Code, Codex)
+└── logs/
+    ├── gatherers/&lt;name&gt;/server.log what each model call came to
+    ├── gatherers/&lt;name&gt;/worker.log the gatherer's background builds
+    ├── &lt;harness&gt;_server.log        each Gatherer server's own output
+    ├── hook_servers/&lt;port&gt;.log     each proxy's output
+    └── llm/                        one JSON file per LLM call the policies make</code></pre>
+  <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
+
   <h2 id="configuration">Configuration</h2>
 
   <h3 id="files">Where settings live</h3>
@@ -136,7 +158,7 @@ max_context_tokens = 60000</code></pre>
   <p>A gatherer's policy cannot change once it is in use, because a different policy keeps different tables in the same database. To try another policy, start a new gatherer. <code>ag config</code> shows what each harness resolves to, <code>ag home list</code> shows the catalog and any problem with it, and <code>ag show &lt;gatherer&gt;</code> shows a gatherer's resolved settings.</p>
 
   <h3 id="gatherers">Choosing a gatherer</h3>
-  <p>By default every agent you start with <code>ag</code>, from any harness, joins one shared gatherer named <code>default</code>, each session as its own channel. Options to <code>ag</code> go before the harness name; everything after it is passed to the harness unchanged.</p>
+  <p>By default every agent you start with <code>ag</code>, from any harness, joins one shared gatherer named <code>default</code>, each session as its own channel.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>flag</th><th>meaning</th></tr></thead>
     <tbody>
@@ -342,22 +364,6 @@ env      = {}</code></pre>
       <tr><td><code>AG_PI_COMPACTION=allow</code>, <code>AG_OPENCODE_COMPACTION=allow</code></td><td>off</td><td>Keep the harness's own compaction on.</td></tr>
       <tr><td><code>AG_CODEX_AG_ROLE=user</code></td><td><code>developer</code></td><td>Send the Gatherer's messages to Codex as user messages instead of developer messages.</td></tr>
       <tr><td><code>AG_ADAPTOR</code></td><td>set by <code>ag</code></td><td>The adaptor the Pi extension or OpenCode plugin loads, as <code>"path.ts:Export"</code>.</td></tr>
-    </tbody>
-  </table></div>
-
-  <h3 id="commands">Commands</h3>
-  <div class="table-wrap"><table>
-    <thead><tr><th>command</th><th>does</th></tr></thead>
-    <tbody>
-      <tr><td><code>ag &lt;harness&gt; [args]</code></td><td>Run the harness with the Gatherer.</td></tr>
-      <tr><td><code>ag model [NAME] [--api-base URL] [--key-env VAR]</code></td><td>Show or set the LLM the Gatherer calls.</td></tr>
-      <tr><td><code>ag config</code></td><td>Show where the settings are, and what each harness resolves to.</td></tr>
-      <tr><td><code>ag status</code> / <code>ag stop</code></td><td>List / stop the proxies <code>ag</code> started.</td></tr>
-      <tr><td><code>ag gatherers</code></td><td>List every gatherer: its policy, pollers, events and last activity.</td></tr>
-      <tr><td><code>ag show &lt;gatherer&gt;</code></td><td>Show a gatherer's resolved settings.</td></tr>
-      <tr><td><code>ag new &lt;gatherer&gt; [--policy P] [--poller X ... | --no-pollers]</code></td><td>Create a gatherer ahead of use.</td></tr>
-      <tr><td><code>ag home list</code></td><td>List every available policy and poller, and any problem.</td></tr>
-      <tr><td><code>ag home path</code></td><td>Print the home directory.</td></tr>
     </tbody>
   </table></div>
 
