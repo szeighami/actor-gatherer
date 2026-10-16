@@ -163,3 +163,5 @@ main.post { margin: 0 auto; padding-top: 40px; min-width: 0; }
 main.post h2, main.post h3 { scroll-margin-top: 72px; }
 .blog-side .side-group a { font: 500 0.88rem/1.4 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
 .blog-side .side-group { margin: 6px 0 2px; }
+/* index.html: the hero image */
+.hero { display: block; width: 100%; height: auto; border-radius: 12px; margin: 8px 0 28px; border: 1px solid var(--line); }
