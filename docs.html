@@ -37,9 +37,9 @@
     <ul>
       <li><a href="#policies"><code>[policies]</code></a></li>
       <li><a href="#llm"><code>[policies.llm]</code></a></li>
-      <li><a href="#pcm-options"><code>proactive_context_manager.options</code></a></li>
+      <li><a href="#pcm-options">Policy configuration</a></li>
       <li><a href="#pollers"><code>[pollers]</code></a></li>
-      <li><a href="#poller-options"><code>file_changes.args</code></a></li>
+      <li><a href="#poller-options">Poller configuration</a></li>
       <li><a href="#cli-settings"><code>[cli]</code></a></li>
       <li><a href="#harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></a></li>
       <li><a href="#env">Other environment variables</a></li>
@@ -195,7 +195,7 @@ options = { show = 3 }</code></pre>
       <tr><td><code>options</code></td><td>Options passed to the policy. A gatherer's own <code>[options]</code> in its <code>gatherer.toml</code> are applied on top of these.</td></tr>
     </tbody>
   </table></div>
-  <p>Two entries can name the same class with different options; each is a separate policy, and a gatherer picks one by name (<code>ag --gatherer small --policy pcm_small codex</code>). The options of the shipped policy are in <a href="#pcm-options"><code>proactive_context_manager.options</code></a>.</p>
+  <p>Two entries can name the same class with different options; each is a separate policy, and a gatherer picks one by name (<code>ag --gatherer small --policy pcm_small codex</code>). The options of the shipped policy are in <a href="#pcm-options">Policy configuration</a>.</p>
 
   <h3 id="llm"><code>[policies.llm]</code></h3>
   <p>The LLM the policy calls (to split history into tasks, summarize them, and rank them). Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default model; set one here or with <a href="#commands"><code>ag model</code></a>.</p>
@@ -214,7 +214,7 @@ model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM
     </tbody>
   </table></div>
 
-  <h3 id="pcm-options"><code>proactive_context_manager.options</code></h3>
+  <h3 id="pcm-options">Policy configuration: <code>proactive_context_manager</code></h3>
   <p><code>proactive_context_manager</code>, the policy <code>ag</code> ships, keeps the current task verbatim. When the context grows, it builds, in the background, a condensed view of the earlier history: it splits the history into tasks, summarizes them, and ranks them by relevance to the current work. The result is a set of sections, each with a token budget. It also shows the user's requests to other agents in the same gatherer, and tells the agent when a file it read has since changed. Every option below is set in a <a href="#policies">catalog entry's</a> <code>options</code>, or for one gatherer in its <code>gatherer.toml</code> <code>[options]</code>; an unknown option is an error.</p>
 
   <h4 id="pcm-when-to-build">When to build</h4>
@@ -313,10 +313,10 @@ file = "chat_log.py"
 class = "ChatLogPoller"
 args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
   <p>An entry under <code>[pollers.available.&lt;name&gt;]</code> takes <code>class</code>, <code>file</code> and <code>module</code> as for policies, and <code>args</code>: the arguments the poller is built with. In a string argument, <code>{cwd}</code> is the agent's working directory, <code>{gatherer}</code> the gatherer's name and <code>{home}</code> the <code>ag</code> home; <code>~</code> is expanded. A poller whose arguments need <code>{cwd}</code> is skipped when the request has no working directory.</p>
-  <p>The options of the shipped poller are in <a href="#poller-options"><code>file_changes.args</code></a>.</p>
+  <p>The options of the shipped poller are in <a href="#poller-options">Poller configuration</a>.</p>
   <p>A gatherer's pollers must output event types its policy accepts; <code>ag</code> checks this before each run (see <a href="#events">Events, event types and properties</a>).</p>
 
-  <h3 id="poller-options"><code>file_changes.args</code></h3>
+  <h3 id="poller-options">Poller configuration: <code>file_changes</code></h3>
   <p><code>file_changes</code>, the poller <code>ag</code> ships, reports every file under its directory modified since the last model call, as an <code>environment_update</code> event. It skips hidden directories, <code>__pycache__</code>, <code>node_modules</code> and symbolic links. The policy tells the agent about a change only if the conversation mentioned that file, and not when the agent's own tool calls wrote it. Its options are set in its catalog entry's <code>args</code>:</p>
   <div class="table-wrap"><table>
     <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
