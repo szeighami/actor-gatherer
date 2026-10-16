@@ -16,7 +16,7 @@
     <p class="subtitle">Proactive context management for agents, curated from long-running sessions, parallel agents, and the environment</p>
     <div class="buttons">
       <a class="btn" href="https://github.com/szeighami/actor-gatherer">Code</a>
-      <a class="btn secondary" href="#results">Results</a>
+      <a class="btn secondary" href="blog.html#comparison">Results</a>
       <a class="btn secondary" href="blog.html">Blog post</a>
       <a class="btn secondary" href="docs.html">Docs</a>
     </div>
@@ -29,71 +29,11 @@
   </header>
 
   <div class="stats">
-    <a class="stat" href="#results"><span class="num">+32%</span><span class="lbl">more accurate than state-of-the-art in single agent setting</span></a>
-    <a class="stat" href="#results"><span class="num">+31%</span><span class="lbl">more accurate with parallel agents and changes to the environment</span></a>
+    <a class="stat" href="blog.html#comparison"><span class="num">+32%</span><span class="lbl">more accurate than state-of-the-art in single agent setting</span></a>
+    <a class="stat" href="blog.html#comparison"><span class="num">+31%</span><span class="lbl">more accurate with parallel agents and changes to the environment</span></a>
   </div>
 
-  <h2>What is the Actor-Gatherer Framework?</h2>
-  <p>Users perform interrelated tasks (e.g., build different, but related features on a code base) using agents over long running sessions, often also using multiple agents in parallel. Multiple long running sessions create a large amount of evolving historical data that new tasks depend on. This data is often too large to fit in typical LLM context windows, and a context management layer decides what information goes in the LLM’s context.</p>
-  <p>Actor-Gatherer is a new paradigm in agent design where the <strong>context across agents is managed proactively and externally</strong>. Actor-Gatherer separates solving a task from context management needed to do so. An <strong>Actor</strong> agent is responsible for performing the user-specified tasks, while a <strong>Gatherer</strong> component observes the Actor agent, as well as other agents and the environment, and decides what context should be provided to the Actor agent. So, the Gatherer decides the context both based on the Actor’s task and actions, as well as any relevant external event, such as other Actors changing a relevant file. Actor-Gatherer is particularly useful for context management in long-running sessions, sharing context across sessions and agents, and in changing environments (e.g., working in parallel with agents).</p>
-  <p>We design a bolt-on framework to turn any existing coding agent into one that uses the Actor-Gatherer framework: different agents from different harnesses connect to a common Gatherer component (a single Gatherer across agents), that, before every LLM call, sets its context based on the collective past history of all the agents, any parallel actions performed by the user, or any other relevant information available in the environment. <strong>We have currently built integrations for Claude Code, Codex, OpenCode and Pi, and are actively expanding the set of integrations.</strong></p>
-
-  <figure class="walkthrough" id="walkthrough">
-    <img id="wt-img" src="figures/gatherer/01.svg?v=4" alt="Actor-Gatherer architecture, step 1" width="836" height="388">
-    <figcaption id="wt-cap"></figcaption>
-    <div class="wt-controls">
-      <button type="button" id="wt-prev" aria-label="Previous step">&larr; Back</button>
-      <span id="wt-count" aria-live="polite"></span>
-      <button type="button" id="wt-next" aria-label="Next step">Next &rarr;</button>
-    </div>
-  </figure>
-  <script>
-  (function () {
-    var caps = ["Actors are agents that interact with the user and the environment.", "The Gatherer observes every interaction between user, actors and the environment and sets the context for each Actor.", "Specifically, the Gatherer observes messages from user and environment to the Actor.", "The Gatherer also observes interactions of other agents with the user and the environment.", "and also observes interactions between the user and the environment.", "Based on all available information, the Gatherer decides what context each Actor receives."];
-    var n = caps.length, i = 0;
-    var img = document.getElementById('wt-img'), cap = document.getElementById('wt-cap'),
-        cnt = document.getElementById('wt-count'),
-        prev = document.getElementById('wt-prev'), next = document.getElementById('wt-next');
-    function src(k) { return 'figures/gatherer/' + String(k + 1).padStart(2, '0') + '.svg?v=4'; }
-    for (var k = 1; k < n; k++) { new Image().src = src(k); }
-    function show(k) {
-      i = Math.max(0, Math.min(n - 1, k));
-      img.src = src(i);
-      img.alt = 'Actor-Gatherer architecture, step ' + (i + 1) + ': ' + caps[i];
-      cap.textContent = caps[i];
-      cnt.textContent = (i + 1) + ' / ' + n;
-      prev.disabled = i === 0; next.disabled = i === n - 1;
-    }
-    prev.onclick = function () { show(i - 1); };
-    next.onclick = function () { show(i + 1); };
-    document.getElementById('walkthrough').addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') show(i - 1);
-      if (e.key === 'ArrowRight') show(i + 1);
-    });
-    show(0);
-  })();
-  </script>
-
-  <h2 id="results">How does it compare with existing context management methods?</h2>
-  <p>Existing techniques either rely on summarization, e.g., Codex includes a summary of the history in context, which is lossy and therefore ineffective. Or they rely on tool-based access, e.g., Recursive Language Models or Context Language Models, where the agent itself can search the history using tools. However, this approach relies on agents knowing what information to search for in the first place, causing errors with <strong><em>unknown unknowns</em></strong>: when an agent is missing key information but is unaware that it is missing it. In the Actor-Gatherer framework, the Gatherer proactively looks at the history, other agents and the environment based on the task at hand and finds any such information.</p>
-
-  <p>We evaluated the Actor-Gatherer framework across coding and data analysis tasks, using it for context management of Codex agents, referred to as AG-Codex. Fig. 1 shows the results in single-agent settings, where relevant context must include information from past interactions with the same agent. Fig. 2 shows the results when multiple agents perform tasks in parallel, so relevant context must include information from interactions with other agents or changes in the environment. Results show <strong>more than 30% improvement in accuracy at lower cost</strong> compared to the second-best approach.</p>
-  <div class="figs">
-    <figure>
-      <img src="figures/fig1_single_agent.png?v=2" alt="Bar chart: average accuracy in single-agent settings. AG-Codex 91%, Codex 32%, Mem0-Codex 59%, Scroll 41%, RLM 32%, CLM 41% (+32 points over the best baseline).">
-      <figcaption>Fig. 1. Single-agent results across coding and data analysis tasks</figcaption>
-    </figure>
-    <figure>
-      <img src="figures/fig2_multi_agent.png?v=2" alt="Bar chart: average accuracy in multi-agent settings. AG-Codex 100%, Codex+Hint 69%, Codex 0% (+31 points).">
-      <figcaption>Fig. 2. Results in multi-agent settings</figcaption>
-    </figure>
-  </div>
-  <p>The Actor-Gatherer framework’s key improvements in accuracy come from better <em>longitudinal (1) and lateral awareness (2, 3):</em> (1) doing a better job identifying relevant context in long-running sessions (2) identifying relevant context from other parallel agentic sessions (3) identifying changes in the environment that may be pertinent to the current agentic tasks. Doing (1)-(3) requires us to separate the Gatherer from the Actor so that the Actor can be responsible for reasoning and execution, while the Gatherer is responsible for proactive context management and maintenance. We separate the “thinking” from the “remembering”.</p>
-
-  <h2>Try it out</h2>
-  <p>Actor-Gatherer is an open-source bolt-on framework for context management across any agent, with current integrations for Claude Code, Codex, Pi and OpenCode. Code will be available at <a href="https://github.com/szeighami/actor-gatherer">github.com/szeighami/actor-gatherer</a>.</p>
-
-  <p class="more">For more details, <a href="blog.html">read the full blog post here</a>.</p>
+  <p class="more">Read the <a href="blog.html#overview">overview</a> and the <a href="blog.html">full blog post</a>, or see the <a href="docs.html">docs</a> to try it out.</p>
 
   <footer>Actor-Gatherer · 2026</footer>
 </main>
