@@ -58,7 +58,7 @@
     <li><strong><code>get_context</code></strong> runs before each model call, and returns the context the model gets.</li>
   </ul>
   <p><strong>Pollers</strong> bring in information from the environment, such as files changed under the working directory. The Gatherer asks them for new events, and they insert those events like an Actor would. A <strong>context management policy</strong> inside the Gatherer then decides what context each Actor gets, using everything it has gathered from every Actor and from the environment.</p>
-  <p><code>ag</code> uses:</p>
+  <p><code>ag</code> currently uses:</p>
   <ul>
     <li><strong>Adaptors:</strong> <a href="https://github.com/szeighami/context_manager/blob/release/integrations/harnesses/claude/adaptor/adaptor.py"><code>ClaudeAdaptor</code></a>, <a href="https://github.com/szeighami/context_manager/blob/release/integrations/harnesses/codex/adaptor/adaptor.py"><code>CodexAdaptor</code></a>, <a href="https://github.com/szeighami/context_manager/blob/release/integrations/harnesses/opencode/adaptor/adaptor.ts"><code>OpencodeAdaptor</code></a> and <a href="https://github.com/szeighami/context_manager/blob/release/integrations/harnesses/pi/adaptor/adaptor.ts"><code>PiAdaptor</code></a>, each with the launcher <code>ag</code> uses to start that harness connected to the Gatherer.</li>
     <li><strong>Pollers:</strong> <a href="https://github.com/szeighami/context_manager/blob/release/ag/ag_pollers/file_changes.py"><code>FileChangePoller</code></a>, which reports files changed under the agent's working directory since it last looked.</li>
