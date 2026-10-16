@@ -158,3 +158,8 @@ main.doc h1 + h2 { margin-top: 8px; }
 .sidebar .expanded .caret::before { transform: rotate(45deg); }
 .sidebar .caret:hover { color: var(--fg); background: var(--tag); }
 .sidebar ul[hidden] { display: none; }
+/* blog.html: the article beside the side navigation */
+main.post { margin: 0 auto; padding-top: 40px; min-width: 0; }
+main.post h2, main.post h3 { scroll-margin-top: 72px; }
+.blog-side .side-group a { font: 500 0.88rem/1.4 Inter, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+.blog-side .side-group { margin: 6px 0 2px; }
