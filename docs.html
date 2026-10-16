@@ -20,8 +20,8 @@
     <p class="side-group"><a href="#overview">Overview</a></p>
     <ul>
       <li><a href="#concepts">Concepts</a></li>
-      <li><a href="#connections">How each harness is connected</a></li>
     </ul>
+    <p class="side-group"><a href="#connections">Harness connection</a></p>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
     <ul>
       <li><a href="#files">Where settings live</a></li>
@@ -50,6 +50,7 @@
   <p><code>ag</code> runs a coding agent you already use (Claude Code, Codex, OpenCode or Pi) with a <strong>Gatherer</strong> in front of every model call. Before each call, the agent's messages go to the Gatherer, which stores them as events and decides what context the model gets: the current conversation, plus what matters from earlier history, from other agents, and from the environment. These docs describe <a href="#configuration">every setting</a> (the context policy, the pollers, the harnesses and the environment variables), and <a href="#extending">how to add</a> your own context policies, pollers and adaptors. For installing <code>ag</code> and a quickstart, see the README in the <a href="https://github.com/szeighami/actor-gatherer">code repository</a>.</p>
 
   <h3 id="concepts">Concepts</h3>
+  <figure class="wide full"><img src="figures/architecture.png" alt="Actor-Gatherer architecture: each Actor, a harness plus its adaptor, calls insert and get_context on the Gatherer, which holds the context and insertion policy and a database; pollers watch the environment and insert events."><figcaption>Each Actor (a harness and its adaptor) sends what it sees and does to the Gatherer, and gets its context back before each model call. Pollers bring in changes from the environment, and the Gatherer's policy decides what context each Actor gets.</figcaption></figure>
   <div class="table-wrap"><table>
     <thead><tr><th>term</th><th>meaning</th></tr></thead>
     <tbody>
@@ -62,7 +63,7 @@
     </tbody>
   </table></div>
 
-  <h3 id="connections">How each harness is connected</h3>
+  <h2 id="connections">Harness connection</h2>
   <p><code>ag</code> connects each harness through a hook the harness already supports. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>harness</th><th>how <code>ag</code> connects it</th><th>how the gatherer is passed</th><th>turned off while connected</th></tr></thead>
@@ -260,7 +261,7 @@ args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
   <p>Policies and pollers are chosen independently. Before each run, <code>ag</code> checks that every event type the gatherer's pollers (and the harness's adaptor) output is one the policy accepts, and refuses to run otherwise, naming what does not match.</p>
 
   <h3 id="harnesses">Harnesses</h3>
-  <p><code>ag</code> knows a harness only from its entry in <code>[cli.harnesses.&lt;name&gt;]</code>, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in the <a href="#connections">overview</a>.</p>
+  <p><code>ag</code> knows a harness only from its entry in <code>[cli.harnesses.&lt;name&gt;]</code>, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in <a href="#connections">Harness connection</a>.</p>
 <pre><code>[cli.harnesses.claude]
 launcher = "integrations.harnesses.claude.setup.launch:ClaudeLauncher"
 adaptor  = "integrations.harnesses.claude.adaptor.adaptor:ClaudeAdaptor"
