@@ -85,3 +85,27 @@ h3 { font: 600 1.08rem Inter, system-ui, sans-serif; margin: 30px 0 8px; }
 h4 { font: 600 0.98rem Inter, system-ui, sans-serif; margin: 18px 0 6px; color: var(--muted); }
 .affil { font: 400 0.95rem Inter, system-ui, sans-serif; color: var(--muted); margin: 0 0 8px; }
 .authors + .affil { margin-top: -4px; }
+/* docs.html */
+.doc h2 { scroll-margin-top: 16px; }
+.doc h3, .doc h4 { scroll-margin-top: 16px; }
+.doc code { font: 0.86em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--tag);
+  padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.doc pre { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+  overflow-x: auto; margin: 0 0 1.2em; }
+.doc pre code { background: none; padding: 0; font-size: 0.8rem; line-height: 1.55; overflow-wrap: normal; white-space: pre; }
+.doc .table-wrap { overflow-x: auto; margin: 0 0 1.2em; }
+.doc table { border-collapse: collapse; width: 100%; font: 0.86rem/1.5 Inter, system-ui, sans-serif; }
+.doc th, .doc td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.doc th { font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--line); }
+.doc td code { font-size: 0.82rem; white-space: nowrap; }
+.doc ul { margin: 0 0 1.1em; padding-left: 1.3em; }
+.doc li { margin-bottom: 0.35em; }
+.toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 20px;
+  font: 0.92rem/1.6 Inter, system-ui, sans-serif; margin: 0 0 8px; }
+.toc ol { margin: 0; padding-left: 1.3em; }
+.toc ol ol { padding-left: 1.2em; }
+.toc a { text-decoration: none; }
+.part { font: 600 0.8rem Inter, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); margin: 56px 0 -32px; }
+.note { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 8px; padding: 10px 16px; font-size: 0.95rem; margin: 0 0 1.2em; }
