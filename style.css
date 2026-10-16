@@ -149,3 +149,12 @@ main.doc footer { text-align: left; }
   main.doc { padding: 24px 16px 64px; }
 }
 main.doc h1 + h2 { margin-top: 8px; }
+.sidebar .side-group { display: flex; align-items: center; gap: 2px; }
+.sidebar .side-group a { flex: 1; }
+.sidebar .caret { flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 4px; background: none;
+  color: var(--muted); cursor: pointer; display: grid; place-items: center; margin-left: -6px; }
+.sidebar .caret::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s ease; }
+.sidebar .expanded .caret::before { transform: rotate(45deg); }
+.sidebar .caret:hover { color: var(--fg); background: var(--tag); }
+.sidebar ul[hidden] { display: none; }
