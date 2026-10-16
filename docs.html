@@ -68,25 +68,32 @@
   <p>You need Python 3.11+ and the harness you want to run on your <code>PATH</code>.</p>
 <pre><code>git clone https://github.com/szeighami/actor-gatherer &amp;&amp; cd actor-gatherer
 pip install -r requirements.txt    # the `ag` command and every dependency</code></pre>
-  <p>You can symlink the script instead of installing it: <code>ln -s $PWD/cli/ag ~/.local/bin/ag</code>.</p>
-  <p><strong>Then set the LLM the Gatherer calls.</strong> Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default, so name one and set that provider's key:</p>
-<pre><code>ag model gemini/gemini-3.8-flash             # "provider/model"; the key from GEMINI_API_KEY
-export GEMINI_API_KEY=...
+  <p><strong>Then set the LLM the Gatherer uses.</strong> It can be an API-based model, called through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>. Name it as <code>provider/model</code>, and set that provider's API key:</p>
+<pre><code>ag model openai/gpt-6-sol                    # "provider/model"; the key from OPENAI_API_KEY
+export OPENAI_API_KEY=...
 
-ag model gemini-3.8-flash --api-base http://127.0.0.1:4011/v1 --key-env LITELLM_KEY
-                                             # or every call through a LiteLLM proxy
-ag model                                     # show the current setting</code></pre>
-  <p><code>ag model</code> writes <a href="#llm"><code>[policies.llm]</code></a> in <code>~/.ag/config.toml</code>, and every gatherer uses it from its next call. A flag you leave out keeps its value, and <code>--api-base ""</code> or <code>--key-env ""</code> clears one. <code>AG_LLM_MODEL</code>, <code>AG_LLM_URL</code> (the <code>api_base</code>) and <code>AG_LLM_KEY</code> override the file. Without a model, <code>ag</code> warns at launch, and every call the Gatherer makes fails (logged in <code>~/.ag/logs/llm/</code>).</p>
+ag model gemini/gemini-3.8-flash             # or a Gemini model; the key from GEMINI_API_KEY
+export GEMINI_API_KEY=...</code></pre>
+  <p>Or it can be a coding agent, such as Claude Code or Codex, which then runs for the Gatherer:</p>
+<pre><code>ag model claude-code/sonnet
+ag model codex/gpt-6-sol</code></pre>
+  <p>To check the model that is set:</p>
+<pre><code>ag model</code></pre>
 
   <h2 id="quickstart">Quickstart</h2>
-  <p>Put <code>ag --gatherer NAME</code> in front of the agent command you would normally run. Every session in the same gatherer shares context, whichever harness runs it:</p>
+  <p>Put <code>ag --gatherer NAME</code> in front of the agent command you would normally run:</p>
 <pre><code>ag --gatherer demo claude                                # Claude Code
 ag --gatherer demo codex exec "fix the tests"            # Codex
 ag --gatherer demo opencode run "add a --verbose flag"   # OpenCode
 ag --gatherer demo pi                                    # Pi</code></pre>
+  <p>Agents join the gatherer named (<code>demo</code> above). Agents in the same gatherer share information with each other, whichever harness runs them. Agents in different gatherers don't share context, and each gatherer keeps its own history.</p>
+  <p>For example, the first two agents below share information; the third, in a gatherer of its own, sees neither of them:</p>
+<pre><code>ag --gatherer frontend claude                            # shares with the Codex below
+ag --gatherer frontend codex                             # shares with the Claude Code above
+ag --gatherer backend codex                              # shares with neither</code></pre>
   <p>Without <code>--gatherer</code>, a session joins the gatherer <code>default</code>:</p>
 <pre><code>ag codex                                                 # the same as: ag --gatherer default codex</code></pre>
-  <p><code>--gatherer .</code> creates a new gatherer, named after the agent session, so that session shares context with no other:</p>
+  <p>Use <code>--gatherer .</code> to create a new, unnamed gatherer. Agents created this way don't share context with other agents:</p>
 <pre><code>ag --gatherer . codex</code></pre>
   <p>To see every gatherer:</p>
 <pre><code>ag gatherers                                             # each one's policy, pollers, event count, last activity</code></pre>
