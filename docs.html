@@ -29,19 +29,27 @@
     </ul>
     <p class="side-group"><a href="#cli">The ag CLI</a></p>
     <ul>
+      <li><a href="#options">Options</a></li>
       <li><a href="#commands">Commands</a></li>
       <li><a href="#home">The home directory</a></li>
     </ul>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
     <ul>
-      <li><a href="#files">Where settings live</a></li>
-      <li><a href="#gatherers">Choosing a gatherer</a></li>
-      <li><a href="#llm">The LLM the Gatherer calls</a></li>
-      <li><a href="#policies">Policies</a></li>
-      <li><a href="#pcm-options">Options of <code>proactive_context_manager</code></a></li>
-      <li><a href="#pollers">Pollers</a></li>
-      <li><a href="#harnesses">Harnesses</a></li>
-      <li><a href="#env">Environment variables</a></li>
+      <li><a href="#policies"><code>[policies]</code></a></li>
+      <li><a href="#llm"><code>[policies.llm]</code></a></li>
+      <li><a href="#pollers"><code>[pollers]</code></a></li>
+      <li><a href="#cli-settings"><code>[cli]</code></a></li>
+      <li><a href="#harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></a></li>
+      <li><a href="#env">Other environment variables</a></li>
+    </ul>
+    <p class="side-group"><a href="#pcm-options">Policy reference</a></p>
+    <ul>
+      <li><a href="#pcm-when-to-build">When to build</a></li>
+      <li><a href="#pcm-splitting-history-into-tasks">Splitting history into tasks</a></li>
+      <li><a href="#pcm-section-budgets-tokens">Section budgets (tokens)</a></li>
+      <li><a href="#pcm-ranking">Ranking</a></li>
+      <li><a href="#pcm-models">Models</a></li>
+      <li><a href="#pcm-what-the-agent-is-shown">What the agent is shown</a></li>
     </ul>
     <p class="side-group"><a href="#extending">Extending ag</a></p>
     <ul>
@@ -107,6 +115,22 @@
   <h2 id="cli">The ag CLI</h2>
   <p><code>ag</code> is the command line that runs a harness with the Gatherer, and manages the gatherers and settings it keeps. Its options go before the harness's name, and everything after the name is passed to the harness unchanged.</p>
 
+  <h3 id="options">Options</h3>
+  <p>By default every agent you start with <code>ag</code>, from any harness, joins one shared gatherer named <code>default</code> (<a href="#cli-settings"><code>[cli] gatherer</code></a>), each session as its own channel.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>flag</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>--gatherer NAME</code></td><td>Join the named gatherer, created if it does not exist. Overrides <code>[cli] gatherer</code>.</td></tr>
+      <tr><td><code>--gatherer .</code></td><td>Give each session a new gatherer of its own, named after the session.</td></tr>
+      <tr><td><code>--policy P</code></td><td>Create the gatherer with policy <code>P</code>. Refused if it exists with another policy.</td></tr>
+      <tr><td><code>--poller X</code></td><td>Create the gatherer with poller <code>X</code> (repeatable).</td></tr>
+      <tr><td><code>--no-pollers</code></td><td>Create the gatherer with no pollers.</td></tr>
+      <tr><td><code>--dry-run</code></td><td>Print the command and environment that would run, and run nothing.</td></tr>
+    </tbody>
+  </table></div>
+  <p>A new gatherer takes its policy and pollers from the defaults in <code>config.toml</code>, or from <code>--policy</code> and <code>--poller</code> when given. They are recorded in <code>~/.ag/gatherers/&lt;name&gt;/gatherer.toml</code>, where you can change an existing gatherer's pollers, or override its policy's options under <code>[options]</code>. A gatherer's policy cannot change once it is in use; to try another, start a new gatherer.</p>
+  <p class="note">The gatherer is chosen on every model call; it is not stored with the session. To resume a session in a named gatherer, name it again: <code>ag --gatherer demo codex resume &lt;id&gt;</code>. Without <code>--gatherer demo</code>, the resumed session goes into <code>default</code>.</p>
+
   <h3 id="commands">Commands</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>command</th><th>does</th></tr></thead>
@@ -141,60 +165,19 @@
   <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
 
   <h2 id="configuration">Configuration</h2>
+  <p>Every setting is in <code>~/.ag/config.toml</code>, created the first time you run <code>ag</code> with every default written out. A command-line option overrides the setting it names (<code>--gatherer</code> over <code>[cli] gatherer</code>), and so does an <code>AG_*</code> environment variable (<code>AG_LLM_MODEL</code> over <code>[policies.llm] model</code>). The file has these tables:</p>
+<pre><code>[policies]                     # the default policy
+[policies.llm]                 # the LLM the policies call
+[policies.available.&lt;name&gt;]    # the catalog: every policy a gatherer may use
 
-  <h3 id="files">Where settings live</h3>
-  <p>Every setting is in one file, <code>~/.ag/config.toml</code>. Set <code>AG_HOME</code> to use another directory than <code>~/.ag</code>. The file is created the first time you run <code>ag</code>, with every default written out, and has three parts:</p>
-  <ul>
-    <li><code>[policies]</code>: the default policy, the LLM the policies call, and the catalog of available policies.</li>
-    <li><code>[pollers]</code>: the default pollers, and the catalog of available pollers.</li>
-    <li><code>[cli]</code>: settings of the <code>ag</code> command itself, and how it launches each harness.</li>
-  </ul>
-  <p>The catalogs list what is <em>available</em>. What a gatherer actually runs is in its own <code>~/.ag/gatherers/&lt;name&gt;/gatherer.toml</code>, which is created from the defaults the first time the gatherer is used:</p>
-<pre><code>policy = "proactive_context_manager"   # fixed once the gatherer has been read with it
-pollers = ["file_changes"]             # change any time; the file is re-read when it changes
+[pollers]                      # the default pollers
+[pollers.available.&lt;name&gt;]     # the catalog: every poller a gatherer may use
 
-[options]                              # this gatherer's overrides of the policy's options
-max_context_tokens = 60000</code></pre>
-  <p>A gatherer's policy cannot change once it is in use, because a different policy keeps different tables in the same database. To try another policy, start a new gatherer. <code>ag config</code> shows what each harness resolves to, <code>ag home list</code> shows the catalog and any problem with it, and <code>ag show &lt;gatherer&gt;</code> shows a gatherer's resolved settings.</p>
+[cli]                          # the ag command: the default gatherer
+[cli.harnesses.&lt;name&gt;]         # each harness ag can run</code></pre>
+  <p><code>ag config</code>, <code>ag home list</code> and <code>ag show</code> show how the settings resolve (see <a href="#commands">Commands</a>).</p>
 
-  <h3 id="gatherers">Choosing a gatherer</h3>
-  <p>By default every agent you start with <code>ag</code>, from any harness, joins one shared gatherer named <code>default</code>, each session as its own channel.</p>
-  <div class="table-wrap"><table>
-    <thead><tr><th>flag</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>--gatherer NAME</code></td><td>Join the named gatherer, created if it does not exist. Overrides <code>[cli] gatherer</code>.</td></tr>
-      <tr><td><code>--gatherer .</code></td><td>Give each session a new gatherer of its own, named after the session.</td></tr>
-      <tr><td><code>--policy P</code></td><td>Create the gatherer with policy <code>P</code>. Refused if it exists with another policy.</td></tr>
-      <tr><td><code>--poller X</code></td><td>Create the gatherer with poller <code>X</code> (repeatable).</td></tr>
-      <tr><td><code>--no-pollers</code></td><td>Create the gatherer with no pollers.</td></tr>
-      <tr><td><code>--dry-run</code></td><td>Print the command and environment that would run, and run nothing.</td></tr>
-    </tbody>
-  </table></div>
-<pre><code>[cli]
-gatherer = "default"     # the gatherer every run joins; "." for one gatherer per session</code></pre>
-  <p class="note">The gatherer is chosen on every model call; it is not stored with the session. To resume a session in a named gatherer, name it again: <code>ag --gatherer demo codex resume &lt;id&gt;</code>. Without <code>--gatherer demo</code>, the resumed session goes into <code>default</code>.</p>
-
-  <h3 id="llm">The LLM the Gatherer calls</h3>
-  <p>The policy calls an LLM of its own (to split history into tasks, summarize them, and rank them). Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default model; set one with <code>ag model</code> or in <code>[policies.llm]</code>:</p>
-<pre><code>ag model gemini/gemini-3.8-flash                                  # "provider/model"; key from GEMINI_API_KEY
-ag model gemini-3.8-flash --api-base http://127.0.0.1:4011/v1 --key-env LITELLM_KEY
-ag model                                                          # show the current setting</code></pre>
-<pre><code>[policies.llm]
-model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM names it
-# api_base = "http://127.0.0.1:4011/v1"  # send every call to a LiteLLM proxy or another OpenAI-compatible server
-# key_env = "LITELLM_KEY"                # read the key from this variable (default: the provider's own)
-# log_prompts = true                     # also keep each call's full prompt in its log</code></pre>
-  <div class="table-wrap"><table>
-    <thead><tr><th>key</th><th>default</th><th>meaning</th><th>overridden by</th></tr></thead>
-    <tbody>
-      <tr><td><code>model</code></td><td>none</td><td>The model, <code>"provider/model"</code>. Without one, <code>ag</code> warns at launch and every Gatherer call fails.</td><td><code>AG_LLM_MODEL</code></td></tr>
-      <tr><td><code>api_base</code></td><td>the provider's</td><td>Send every call to this server instead.</td><td><code>AG_LLM_URL</code></td></tr>
-      <tr><td><code>key_env</code></td><td>the provider's variable</td><td>The environment variable that holds the API key.</td><td><code>AG_LLM_KEY</code> (the key itself)</td></tr>
-      <tr><td><code>log_prompts</code></td><td><code>false</code></td><td>Keep each call's system text and prompt, whole, in <code>~/.ag/logs/llm/</code>. Usage, timing and the answer are always logged.</td><td></td></tr>
-    </tbody>
-  </table></div>
-
-  <h3 id="policies">Policies</h3>
+  <h3 id="policies"><code>[policies]</code></h3>
 <pre><code>[policies]
 default = "proactive_context_manager"    # the policy a new gatherer gets when none is named
 
@@ -219,95 +202,26 @@ options = { show = 3 }</code></pre>
       <tr><td><code>options</code></td><td>Options passed to the policy. A gatherer's own <code>[options]</code> in its <code>gatherer.toml</code> are applied on top of these.</td></tr>
     </tbody>
   </table></div>
-  <p>Two entries can name the same class with different options; each is a separate policy, and a gatherer picks one by name (<code>ag --gatherer small --policy pcm_small codex</code>).</p>
+  <p>Two entries can name the same class with different options; each is a separate policy, and a gatherer picks one by name (<code>ag --gatherer small --policy pcm_small codex</code>). The options of the shipped policy are in the <a href="#pcm-options">policy reference</a>.</p>
 
-  <h3 id="pcm-options">Options of <code>proactive_context_manager</code></h3>
-  <p><code>proactive_context_manager</code>, the policy <code>ag</code> ships, keeps the current task verbatim. When the context grows, it builds, in the background, a condensed view of the earlier history: it splits the history into tasks, summarizes them, and ranks them by relevance to the current work. The result is a set of sections, each with a token budget. It also shows the user's requests to other agents in the same gatherer, and tells the agent when a file it read has since changed. Every option below can be set in a catalog entry's <code>options</code> or a gatherer's <code>[options]</code>; an unknown option is an error.</p>
-
-  <h4>When to build</h4>
-  <p>At each user message, the policy compares the size of the context (in tokens) to two thresholds. Below <code>min_context_tokens</code> it never builds. Between the two, it asks the LLM whether the new message starts a new task, and builds if so. At or above <code>max_context_tokens</code> it always builds.</p>
+  <h3 id="llm"><code>[policies.llm]</code></h3>
+  <p>The LLM the policy calls (to split history into tasks, summarize them, and rank them). Every call goes through <a href="https://docs.litellm.ai/docs/providers">LiteLLM</a>, so the model's name picks the provider. There is no default model; set one here or with <a href="#commands"><code>ag model</code></a>.</p>
+<pre><code>[policies.llm]
+model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM names it
+# api_base = "http://127.0.0.1:4011/v1"  # send every call to a LiteLLM proxy or another OpenAI-compatible server
+# key_env = "LITELLM_KEY"                # read the key from this variable (default: the provider's own)
+# log_prompts = true                     # also keep each call's full prompt in its log</code></pre>
   <div class="table-wrap"><table>
-    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
+    <thead><tr><th>key</th><th>default</th><th>meaning</th><th>overridden by</th></tr></thead>
     <tbody>
-      <tr><td><code>min_context_tokens</code></td><td>15000</td><td>Below this, never build.</td></tr>
-      <tr><td><code>max_context_tokens</code></td><td>100000</td><td>At or above this, always build.</td></tr>
-      <tr><td><code>check_boundaries</code></td><td><code>true</code></td><td>Between the thresholds, ask whether a new task started. <code>false</code>: never build there.</td></tr>
-      <tr><td><code>boundary_cooldown</code></td><td>2</td><td>User messages into the open task before asking again.</td></tr>
-      <tr><td><code>boundary_tasks_shown</code></td><td>2</td><td>Finished tasks shown to the check, for contrast.</td></tr>
-      <tr><td><code>boundary_block_chars</code></td><td>6000</td><td>Characters per task shown to the check.</td></tr>
-      <tr><td><code>sync_seconds</code></td><td>15.0</td><td>How long a model call waits for a build it started. After that, the call goes on and the build is used later.</td></tr>
-      <tr><td><code>build_timeout</code></td><td>3600</td><td>Seconds after which a running build is considered dead.</td></tr>
-      <tr><td><code>require_smaller</code></td><td><code>true</code></td><td>Do not use a build whose sections are not smaller than the history they replace.</td></tr>
+      <tr><td><code>model</code></td><td>none</td><td>The model, <code>"provider/model"</code>. Without one, <code>ag</code> warns at launch and every Gatherer call fails.</td><td><code>AG_LLM_MODEL</code></td></tr>
+      <tr><td><code>api_base</code></td><td>the provider's</td><td>Send every call to this server instead.</td><td><code>AG_LLM_URL</code></td></tr>
+      <tr><td><code>key_env</code></td><td>the provider's variable</td><td>The environment variable that holds the API key.</td><td><code>AG_LLM_KEY</code> (the key itself)</td></tr>
+      <tr><td><code>log_prompts</code></td><td><code>false</code></td><td>Keep each call's system text and prompt, whole, in <code>~/.ag/logs/llm/</code>. Usage, timing and the answer are always logged.</td><td></td></tr>
     </tbody>
   </table></div>
 
-  <h4>Splitting history into tasks</h4>
-  <div class="table-wrap"><table>
-    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>task_chunk_tokens</code></td><td>6000</td><td>No task is larger than this (user and agent message tokens); larger ones are subdivided.</td></tr>
-      <tr><td><code>max_subdivide_depth</code></td><td>3</td><td>How many times a task may be subdivided.</td></tr>
-      <tr><td><code>chunk_window_tokens</code></td><td>30000</td><td>History shown to each segmentation call.</td></tr>
-      <tr><td><code>chunk_prior_tasks</code></td><td>20</td><td>Earlier tasks shown to each segmentation call (0: all).</td></tr>
-      <tr><td><code>summarize</code></td><td><code>true</code></td><td>Record what each finished task established.</td></tr>
-      <tr><td><code>summarize_workers</code></td><td>0</td><td>Parallel summarization threads (0: one per task).</td></tr>
-    </tbody>
-  </table></div>
-
-  <h4>Section budgets (tokens)</h4>
-  <div class="table-wrap"><table>
-    <thead><tr><th>option</th><th>default</th><th>section</th></tr></thead>
-    <tbody>
-      <tr><td><code>all_task_tokens</code></td><td>60000</td><td>Every earlier request in this channel, verbatim.</td></tr>
-      <tr><td><code>parallel_index_tokens</code></td><td>30000</td><td>Other channels' requests, in the same index.</td></tr>
-      <tr><td><code>keep_temporal_relevant_tokens</code></td><td>15000</td><td>Earlier messages: whole earlier tasks, newest first, messages only.</td></tr>
-      <tr><td><code>keep_task_relevant_tokens</code></td><td>15000</td><td>Related earlier tasks, from any channel, ranked by relevance.</td></tr>
-      <tr><td><code>keep_previous_task_tokens</code></td><td>15000</td><td>The task before the current one, in full, trimmed in the middle to fit.</td></tr>
-      <tr><td><code>keep_parallel_tokens</code></td><td>0</td><td>A separate section for other channels' requests since the build. Off by default, since those requests are shown in place instead.</td></tr>
-    </tbody>
-  </table></div>
-
-  <h4>Ranking</h4>
-  <div class="table-wrap"><table>
-    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>parallel_related_tasks</code></td><td><code>true</code></td><td>Other channels' tasks may be ranked in.</td></tr>
-      <tr><td><code>rank_turns</code></td><td>3</td><td>Last turns that describe the current work, given to the ranker.</td></tr>
-      <tr><td><code>rank_top_n</code></td><td>0</td><td>Tasks to rank (0: sized from the budget).</td></tr>
-      <tr><td><code>rank_legroom</code></td><td>40</td><td>Percent more candidates than fit the budget.</td></tr>
-      <tr><td><code>task_tokens_fallback</code></td><td>700</td><td>Assumed size of a task whose size is unknown.</td></tr>
-    </tbody>
-  </table></div>
-
-  <h4>Models</h4>
-  <p>Each tool can use its own model; an empty model is the one in <code>[policies.llm]</code>. Efforts are passed to the model as its reasoning effort; timeouts are in seconds.</p>
-  <div class="table-wrap"><table>
-    <thead><tr><th>tool</th><th>model</th><th>effort (default)</th><th>timeout (default)</th></tr></thead>
-    <tbody>
-      <tr><td>segmentation</td><td><code>segment_model</code></td><td><code>segment_effort</code> (<code>"high"</code>)</td><td><code>segment_timeout</code> (900)</td></tr>
-      <tr><td>summaries</td><td><code>summarize_model</code> (empty: <code>segment_model</code>)</td><td><code>summarize_effort</code> (empty: <code>segment_effort</code>)</td><td><code>segment_timeout</code></td></tr>
-      <tr><td>ranking</td><td><code>rank_model</code></td><td><code>rank_effort</code> (<code>"low"</code>)</td><td><code>rank_timeout</code> (180)</td></tr>
-      <tr><td>new-task check</td><td><code>boundary_model</code></td><td><code>boundary_effort</code> (<code>"low"</code>)</td><td><code>boundary_timeout</code> (60)</td></tr>
-    </tbody>
-  </table></div>
-
-  <h4>What the agent is shown</h4>
-  <p>The wording of every message the policy adds is an option too, with <code>{placeholders}</code> filled in from the event.</p>
-  <div class="table-wrap"><table>
-    <thead><tr><th>option</th><th>shown for</th><th>placeholders</th></tr></thead>
-    <tbody>
-      <tr><td><code>parallel_message</code></td><td>Each request the user made to another channel, right before the request this agent is working on.</td><td><code>{text}</code>, <code>{channel}</code>, <code>{db_path}</code>, <code>{channel_column}</code></td></tr>
-      <tr><td><code>notice</code></td><td>A file the agent read that has since changed.</td><td><code>{what}</code>, <code>{subject}</code>, <code>{timestamp}</code>, <code>{repeat}</code></td></tr>
-      <tr><td><code>notice_repeat</code></td><td>Added as <code>{repeat}</code> when the agent was already told about an earlier change to the same file.</td><td></td></tr>
-      <tr><td><code>notice_named</code></td><td>Several changed files at once, named (up to <code>notice_names</code>, default 5).</td><td><code>{subjects}</code></td></tr>
-      <tr><td><code>notice_counted</code></td><td>More changed files than <code>notice_names</code>, counted.</td><td><code>{count}</code></td></tr>
-      <tr><td><code>message</code></td><td>A message from a stream (a <code>context_stream</code> event from a poller).</td><td><code>{stream}</code>, <code>{author}</code>, <code>{text}</code>, <code>{timestamp}</code></td></tr>
-      <tr><td><code>parallel_intro</code></td><td>The intro of the separate parallel section, when <code>keep_parallel_tokens</code> turns it on.</td><td></td></tr>
-      <tr><td><code>db_hint</code></td><td><code>true</code>: tell the agent where its full history is (the gatherer's database).</td><td></td></tr>
-    </tbody>
-  </table></div>
-
-  <h3 id="pollers">Pollers</h3>
+  <h3 id="pollers"><code>[pollers]</code></h3>
 <pre><code>[pollers]
 default = ["file_changes"]               # the pollers a new gatherer gets, whatever its policy
 
@@ -321,10 +235,15 @@ class = "ChatLogPoller"
 args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
   <p>An entry under <code>[pollers.available.&lt;name&gt;]</code> takes <code>class</code>, <code>file</code> and <code>module</code> as for policies, and <code>args</code>: the arguments the poller is built with. In a string argument, <code>{cwd}</code> is the agent's working directory, <code>{gatherer}</code> the gatherer's name and <code>{home}</code> the <code>ag</code> home; <code>~</code> is expanded. A poller whose arguments need <code>{cwd}</code> is skipped when the request has no working directory.</p>
   <p>The shipped poller, <code>file_changes</code> (<code>FileChangePoller(root, limit=500)</code>), reports every file under <code>root</code> modified since the last model call, as an <code>environment_update</code> event. It skips hidden directories, <code>__pycache__</code>, <code>node_modules</code> and symbolic links, and stops at <code>limit</code> files, so a large checkout or build costs a bounded number of events. The policy tells the agent about a change only if the conversation mentioned that file, and not when the agent's own tool calls wrote it.</p>
-  <p>Policies and pollers are chosen independently. Before each run, <code>ag</code> checks that every event type the gatherer's pollers (and the harness's adaptor) output is one the policy accepts, and refuses to run otherwise, naming what does not match.</p>
+  <p>A gatherer's pollers must output event types its policy accepts; <code>ag</code> checks this before each run (see <a href="#events">Events, event types and properties</a>).</p>
 
-  <h3 id="harnesses">Harnesses</h3>
-  <p><code>ag</code> knows a harness only from its entry in <code>[cli.harnesses.&lt;name&gt;]</code>, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in <a href="#connections">Harness connection</a>.</p>
+  <h3 id="cli-settings"><code>[cli]</code></h3>
+<pre><code>[cli]
+gatherer = "default"     # the gatherer every run joins; "." for one gatherer per session</code></pre>
+  <p><code>--gatherer</code> overrides it for one run (see <a href="#options">Options</a>).</p>
+
+  <h3 id="harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></h3>
+  <p><code>ag</code> knows a harness only from its entry here, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in <a href="#connections">Harness connection</a>.</p>
 <pre><code>[cli.harnesses.claude]
 launcher = "integrations.harnesses.claude.setup.launch:ClaudeLauncher"
 adaptor  = "integrations.harnesses.claude.adaptor.adaptor:ClaudeAdaptor"
@@ -350,20 +269,110 @@ env      = {}</code></pre>
       <tr><td><code>provider</code></td><td>codex</td><td><code>""</code></td><td>The Codex model provider to hook. Empty: the one Codex would use.</td></tr>
     </tbody>
   </table></div>
-  <h3 id="env">Environment variables</h3>
+  <p>Environment variables for one harness, set when you run it:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>variable</th><th>harness</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>AG_PI_TIMEOUT_MS</code>, <code>AG_OPENCODE_TIMEOUT_MS</code></td><td>pi, opencode</td><td>300000</td><td>How long a model call waits for the Gatherer.</td></tr>
+      <tr><td><code>AG_PI_COMPACTION=allow</code>, <code>AG_OPENCODE_COMPACTION=allow</code></td><td>pi, opencode</td><td>off</td><td>Keep the harness's own compaction on.</td></tr>
+      <tr><td><code>AG_CODEX_AG_ROLE=user</code></td><td>codex</td><td><code>developer</code></td><td>Send the Gatherer's messages to Codex as user messages instead of developer messages.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="env">Other environment variables</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>variable</th><th>default</th><th>meaning</th></tr></thead>
     <tbody>
-      <tr><td><code>AG_HOME</code></td><td><code>~/.ag</code></td><td>The home directory: settings, gatherers, logs.</td></tr>
+      <tr><td><code>AG_HOME</code></td><td><code>~/.ag</code></td><td>The <a href="#home">home directory</a>: settings, gatherers, logs.</td></tr>
       <tr><td><code>AG_PYTHON</code></td><td><code>python3</code></td><td>The Python that runs the Gatherer's server. The Claude Code and Codex proxies default to the Python they run in.</td></tr>
-      <tr><td><code>AG_LLM_MODEL</code></td><td><code>[policies.llm] model</code></td><td>The model the Gatherer calls.</td></tr>
-      <tr><td><code>AG_LLM_URL</code></td><td><code>[policies.llm] api_base</code></td><td>The server the Gatherer's LLM calls go to.</td></tr>
-      <tr><td><code>AG_LLM_KEY</code></td><td>the variable <code>key_env</code> names</td><td>The API key for those calls.</td></tr>
       <tr><td><code>AG_GATHERER</code></td><td>none</td><td>The gatherer, for the Pi extension and the OpenCode plugin when run without <code>ag</code>. Ignored under <code>ag</code>: use <code>--gatherer</code>.</td></tr>
-      <tr><td><code>AG_PI_TIMEOUT_MS</code>, <code>AG_OPENCODE_TIMEOUT_MS</code></td><td>300000</td><td>How long a model call waits for the Gatherer.</td></tr>
-      <tr><td><code>AG_PI_COMPACTION=allow</code>, <code>AG_OPENCODE_COMPACTION=allow</code></td><td>off</td><td>Keep the harness's own compaction on.</td></tr>
-      <tr><td><code>AG_CODEX_AG_ROLE=user</code></td><td><code>developer</code></td><td>Send the Gatherer's messages to Codex as user messages instead of developer messages.</td></tr>
       <tr><td><code>AG_ADAPTOR</code></td><td>set by <code>ag</code></td><td>The adaptor the Pi extension or OpenCode plugin loads, as <code>"path.ts:Export"</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="pcm-options">Policy reference: <code>proactive_context_manager</code></h2>
+  <p><code>proactive_context_manager</code>, the policy <code>ag</code> ships, keeps the current task verbatim. When the context grows, it builds, in the background, a condensed view of the earlier history: it splits the history into tasks, summarizes them, and ranks them by relevance to the current work. The result is a set of sections, each with a token budget. It also shows the user's requests to other agents in the same gatherer, and tells the agent when a file it read has since changed. Every option below is set in a <a href="#policies">catalog entry's</a> <code>options</code>, or for one gatherer in its <code>gatherer.toml</code> <code>[options]</code>; an unknown option is an error.</p>
+
+  <h3 id="pcm-when-to-build">When to build</h3>
+  <p>At each user message, the policy compares the size of the context (in tokens) to two thresholds. Below <code>min_context_tokens</code> it never builds. Between the two, it asks the LLM whether the new message starts a new task, and builds if so. At or above <code>max_context_tokens</code> it always builds.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>min_context_tokens</code></td><td>15000</td><td>Below this, never build.</td></tr>
+      <tr><td><code>max_context_tokens</code></td><td>100000</td><td>At or above this, always build.</td></tr>
+      <tr><td><code>check_boundaries</code></td><td><code>true</code></td><td>Between the thresholds, ask whether a new task started. <code>false</code>: never build there.</td></tr>
+      <tr><td><code>boundary_cooldown</code></td><td>2</td><td>User messages into the open task before asking again.</td></tr>
+      <tr><td><code>boundary_tasks_shown</code></td><td>2</td><td>Finished tasks shown to the check, for contrast.</td></tr>
+      <tr><td><code>boundary_block_chars</code></td><td>6000</td><td>Characters per task shown to the check.</td></tr>
+      <tr><td><code>sync_seconds</code></td><td>15.0</td><td>How long a model call waits for a build it started. After that, the call goes on and the build is used later.</td></tr>
+      <tr><td><code>build_timeout</code></td><td>3600</td><td>Seconds after which a running build is considered dead.</td></tr>
+      <tr><td><code>require_smaller</code></td><td><code>true</code></td><td>Do not use a build whose sections are not smaller than the history they replace.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="pcm-splitting-history-into-tasks">Splitting history into tasks</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>task_chunk_tokens</code></td><td>6000</td><td>No task is larger than this (user and agent message tokens); larger ones are subdivided.</td></tr>
+      <tr><td><code>max_subdivide_depth</code></td><td>3</td><td>How many times a task may be subdivided.</td></tr>
+      <tr><td><code>chunk_window_tokens</code></td><td>30000</td><td>History shown to each segmentation call.</td></tr>
+      <tr><td><code>chunk_prior_tasks</code></td><td>20</td><td>Earlier tasks shown to each segmentation call (0: all).</td></tr>
+      <tr><td><code>summarize</code></td><td><code>true</code></td><td>Record what each finished task established.</td></tr>
+      <tr><td><code>summarize_workers</code></td><td>0</td><td>Parallel summarization threads (0: one per task).</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="pcm-section-budgets-tokens">Section budgets (tokens)</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>option</th><th>default</th><th>section</th></tr></thead>
+    <tbody>
+      <tr><td><code>all_task_tokens</code></td><td>60000</td><td>Every earlier request in this channel, verbatim.</td></tr>
+      <tr><td><code>parallel_index_tokens</code></td><td>30000</td><td>Other channels' requests, in the same index.</td></tr>
+      <tr><td><code>keep_temporal_relevant_tokens</code></td><td>15000</td><td>Earlier messages: whole earlier tasks, newest first, messages only.</td></tr>
+      <tr><td><code>keep_task_relevant_tokens</code></td><td>15000</td><td>Related earlier tasks, from any channel, ranked by relevance.</td></tr>
+      <tr><td><code>keep_previous_task_tokens</code></td><td>15000</td><td>The task before the current one, in full, trimmed in the middle to fit.</td></tr>
+      <tr><td><code>keep_parallel_tokens</code></td><td>0</td><td>A separate section for other channels' requests since the build. Off by default, since those requests are shown in place instead.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="pcm-ranking">Ranking</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>option</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>parallel_related_tasks</code></td><td><code>true</code></td><td>Other channels' tasks may be ranked in.</td></tr>
+      <tr><td><code>rank_turns</code></td><td>3</td><td>Last turns that describe the current work, given to the ranker.</td></tr>
+      <tr><td><code>rank_top_n</code></td><td>0</td><td>Tasks to rank (0: sized from the budget).</td></tr>
+      <tr><td><code>rank_legroom</code></td><td>40</td><td>Percent more candidates than fit the budget.</td></tr>
+      <tr><td><code>task_tokens_fallback</code></td><td>700</td><td>Assumed size of a task whose size is unknown.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="pcm-models">Models</h3>
+  <p>Each tool can use its own model; an empty model is the one in <code>[policies.llm]</code>. Efforts are passed to the model as its reasoning effort; timeouts are in seconds.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>tool</th><th>model</th><th>effort (default)</th><th>timeout (default)</th></tr></thead>
+    <tbody>
+      <tr><td>segmentation</td><td><code>segment_model</code></td><td><code>segment_effort</code> (<code>"high"</code>)</td><td><code>segment_timeout</code> (900)</td></tr>
+      <tr><td>summaries</td><td><code>summarize_model</code> (empty: <code>segment_model</code>)</td><td><code>summarize_effort</code> (empty: <code>segment_effort</code>)</td><td><code>segment_timeout</code></td></tr>
+      <tr><td>ranking</td><td><code>rank_model</code></td><td><code>rank_effort</code> (<code>"low"</code>)</td><td><code>rank_timeout</code> (180)</td></tr>
+      <tr><td>new-task check</td><td><code>boundary_model</code></td><td><code>boundary_effort</code> (<code>"low"</code>)</td><td><code>boundary_timeout</code> (60)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="pcm-what-the-agent-is-shown">What the agent is shown</h3>
+  <p>The wording of every message the policy adds is an option too, with <code>{placeholders}</code> filled in from the event.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>option</th><th>shown for</th><th>placeholders</th></tr></thead>
+    <tbody>
+      <tr><td><code>parallel_message</code></td><td>Each request the user made to another channel, right before the request this agent is working on.</td><td><code>{text}</code>, <code>{channel}</code>, <code>{db_path}</code>, <code>{channel_column}</code></td></tr>
+      <tr><td><code>notice</code></td><td>A file the agent read that has since changed.</td><td><code>{what}</code>, <code>{subject}</code>, <code>{timestamp}</code>, <code>{repeat}</code></td></tr>
+      <tr><td><code>notice_repeat</code></td><td>Added as <code>{repeat}</code> when the agent was already told about an earlier change to the same file.</td><td></td></tr>
+      <tr><td><code>notice_named</code></td><td>Several changed files at once, named (up to <code>notice_names</code>, default 5).</td><td><code>{subjects}</code></td></tr>
+      <tr><td><code>notice_counted</code></td><td>More changed files than <code>notice_names</code>, counted.</td><td><code>{count}</code></td></tr>
+      <tr><td><code>message</code></td><td>A message from a stream (a <code>context_stream</code> event from a poller).</td><td><code>{stream}</code>, <code>{author}</code>, <code>{text}</code>, <code>{timestamp}</code></td></tr>
+      <tr><td><code>parallel_intro</code></td><td>The intro of the separate parallel section, when <code>keep_parallel_tokens</code> turns it on.</td><td></td></tr>
+      <tr><td><code>db_hint</code></td><td><code>true</code>: tell the agent where its full history is (the gatherer's database).</td><td></td></tr>
     </tbody>
   </table></div>
 
