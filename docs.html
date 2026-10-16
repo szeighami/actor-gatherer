@@ -20,8 +20,14 @@
     <p class="side-group"><a href="#overview">Overview</a></p>
     <ul>
       <li><a href="#concepts">Concepts</a></li>
+      <li><a href="#home">The home directory</a></li>
     </ul>
     <p class="side-group"><a href="#connections">Harness connection</a></p>
+    <ul>
+      <li><a href="#proxy-based">Proxy-based harnesses</a></li>
+      <li><a href="#hook-based">Hook-based harnesses</a></li>
+      <li><a href="#connection-table">Each harness</a></li>
+    </ul>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
     <ul>
       <li><a href="#files">Where settings live</a></li>
@@ -33,7 +39,6 @@
       <li><a href="#harnesses">Harnesses</a></li>
       <li><a href="#env">Environment variables</a></li>
       <li><a href="#commands">Commands</a></li>
-      <li><a href="#logs">Files and logs</a></li>
     </ul>
     <p class="side-group"><a href="#extending">Extending ag</a></p>
     <ul>
@@ -63,19 +68,55 @@
     </tbody>
   </table></div>
 
+  <h3 id="home">The home directory</h3>
+  <p>Everything <code>ag</code> keeps is in one directory, <code>~/.ag</code> (set <code>AG_HOME</code> to move it). Each gatherer has a directory of its own, with its settings and its database:</p>
+<pre><code>~/.ag/
+├── config.toml                     every setting: policies, pollers, the LLM, harnesses
+├── plugins/                        your own policies and pollers (Python files)
+├── gatherers/&lt;name&gt;/               one directory per gatherer:
+│   ├── gatherer.toml               its policy, its options and its pollers
+│   └── context.db                  its database (SQLite): every event, and every context it sent
+├── hook_server/&lt;port&gt;.json         the proxies ag started (Claude Code, Codex)
+└── logs/
+    ├── gatherers/&lt;name&gt;/server.log what each model call came to
+    ├── gatherers/&lt;name&gt;/worker.log the gatherer's background builds
+    ├── &lt;harness&gt;_server.log        each Gatherer server's own output
+    ├── hook_servers/&lt;port&gt;.log     each proxy's output
+    └── llm/                        one JSON file per LLM call the policies make</code></pre>
+  <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
+
   <h2 id="connections">Harness connection</h2>
-  <p><code>ag</code> connects each harness through a hook the harness already supports. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did.</p>
+  <p>Each harness is connected to the Gatherer in one of two ways, depending on what the harness supports. Either way, the harness's <strong>launcher</strong> sets the connection up for one run, and the harness's <strong>adaptor</strong> turns its messages into events and the Gatherer's context back into messages. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did. If the Gatherer fails or times out, the harness sends its own messages unchanged.</p>
+
+  <h3 id="proxy-based">Proxy-based harnesses</h3>
+  <p>A harness that calls its model over HTTP, and lets you change where those calls go, is connected through a <strong>proxy</strong>: a local hook server that sits between the harness and its model's API. Claude Code and Codex are connected this way.</p>
+  <ul>
+    <li>The launcher points the harness's API base URL at the proxy, for this run only. The proxy relays to wherever the harness pointed before (the <em>upstream</em>).</li>
+    <li>On every request that is a model call, the proxy runs the adaptor on the request's messages, sends the events to the Gatherer, and forwards the request with the context in place of the messages. Every other request passes through untouched, and the answer streams back unchanged.</li>
+    <li>The gatherer is passed in the URL path, <code>/h/&lt;gatherer&gt;/</code>, and the channel is the harness's session (a Claude Code session, a Codex thread), read from the request.</li>
+    <li>Proxies run detached: the first run with a given upstream starts one, and later runs and other sessions reuse it. <code>ag status</code> lists them and <code>ag stop</code> stops them.</li>
+  </ul>
+
+  <h3 id="hook-based">Hook-based harnesses</h3>
+  <p>A harness with a plugin system that can change the messages before each model call is connected through a <strong>hook</strong>: a plugin that <code>ag</code> loads into the harness. Pi (an extension) and OpenCode (a plugin) are connected this way.</p>
+  <ul>
+    <li>The launcher loads the plugin for this run only: a command-line flag for Pi, and the configuration passed in the environment for OpenCode.</li>
+    <li>Before every model call, the harness calls the plugin's hook with the messages. The plugin runs the adaptor, sends the events to the Gatherer, and gives the harness back the context to send instead.</li>
+    <li>The gatherer is passed to the plugin as an option, and the channel is the harness's session.</li>
+    <li>The harness's own compaction is turned off while the Gatherer answers, since the Gatherer now decides what the context holds. Set <code>AG_PI_COMPACTION=allow</code> or <code>AG_OPENCODE_COMPACTION=allow</code> to keep it on.</li>
+  </ul>
+
+  <h3 id="connection-table">Each harness</h3>
   <div class="table-wrap"><table>
-    <thead><tr><th>harness</th><th>how <code>ag</code> connects it</th><th>how the gatherer is passed</th><th>turned off while connected</th></tr></thead>
+    <thead><tr><th>harness</th><th>type</th><th>what the launcher does</th><th>gatherer</th><th>channel</th><th>the Gatherer's own messages arrive as</th><th>turned off</th></tr></thead>
     <tbody>
-      <tr><td>Claude Code</td><td>Points <code>ANTHROPIC_BASE_URL</code> at a local hook server, which relays to the real upstream.</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>nothing</td></tr>
-      <tr><td>Codex</td><td>Points the active provider's <code>base_url</code> at a local hook server, which relays to the real upstream.</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>nothing</td></tr>
-      <tr><td>Pi</td><td>Loads the extension with <code>-e</code>, unless Pi already has the package installed.</td><td><code>--ag-gatherer NAME</code></td><td>Pi's compaction</td></tr>
-      <tr><td>OpenCode</td><td>Adds the plugin through <code>OPENCODE_CONFIG_CONTENT</code>.</td><td>the plugin's <code>gatherer</code> option</td><td>auto-compaction and tool-output pruning</td></tr>
+      <tr><td>Claude Code</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points <code>ANTHROPIC_BASE_URL</code> at it.</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the session</td><td>system messages, or user-turn reminders (<code>system_messages</code>)</td><td>nothing</td></tr>
+      <tr><td>Codex</td><td>proxy</td><td>Starts a proxy if none is running for the upstream, and points the active provider's <code>base_url</code> at it (<code>-c</code>).</td><td>URL path <code>/h/&lt;gatherer&gt;/</code></td><td>the thread</td><td>developer messages (<code>AG_CODEX_AG_ROLE=user</code>: user messages)</td><td>nothing</td></tr>
+      <tr><td>Pi</td><td>hook</td><td>Loads the extension with <code>-e</code>, unless Pi already has the package installed.</td><td><code>--ag-gatherer NAME</code></td><td>the session</td><td>a hidden custom message</td><td>Pi's compaction</td></tr>
+      <tr><td>OpenCode</td><td>hook</td><td>Adds the plugin through <code>OPENCODE_CONFIG_CONTENT</code>.</td><td>the plugin's <code>gatherer</code> option</td><td>the session</td><td>a synthetic user message</td><td>auto-compaction and tool-output pruning</td></tr>
     </tbody>
   </table></div>
-  <p>Hook servers run detached, and later runs with the same upstream reuse them; <code>ag status</code> lists them and <code>ag stop</code> stops them. If the Gatherer fails or times out, the harness sends its own messages unchanged.</p>
-
+  <p>A new harness can be connected either way; see <a href="#write-adaptor">Writing an adaptor for a new harness</a>.</p>
 
   <h2 id="configuration">Configuration</h2>
 
@@ -279,7 +320,7 @@ env      = {}</code></pre>
       <tr><td><code>adaptor</code></td><td>all</td><td>(shipped)</td><td>The adaptor class: <code>"module:Class"</code> in Python, or <code>"path.ts:Export"</code> in TypeScript (relative to the clone).</td></tr>
       <tr><td><code>command</code></td><td>all</td><td>the harness's name</td><td>The command to run, as a list or a string.</td></tr>
       <tr><td><code>env</code></td><td>all</td><td><code>{}</code></td><td>Extra environment variables for this harness only.</td></tr>
-      <tr><td><code>port</code></td><td>claude, codex</td><td>4113 / 4013</td><td>The first port the local hook server tries.</td></tr>
+      <tr><td><code>port</code></td><td>claude, codex</td><td>4113 / 4013</td><td>The first port the proxy tries.</td></tr>
       <tr><td><code>log_dir</code></td><td>claude, codex</td><td><code>""</code></td><td>If set, write each request the hook changed, before and after.</td></tr>
       <tr><td><code>upstream</code></td><td>claude</td><td><code>""</code></td><td>Where API calls go. Empty: <code>$ANTHROPIC_BASE_URL</code> if set, else Anthropic's API.</td></tr>
       <tr><td><code>trace_root</code></td><td>claude</td><td><code>""</code></td><td>If set, record every model call there: the request as the model got it, and its answer.</td></tr>
@@ -292,7 +333,7 @@ env      = {}</code></pre>
     <thead><tr><th>variable</th><th>default</th><th>meaning</th></tr></thead>
     <tbody>
       <tr><td><code>AG_HOME</code></td><td><code>~/.ag</code></td><td>The home directory: settings, gatherers, logs.</td></tr>
-      <tr><td><code>AG_PYTHON</code></td><td><code>python3</code></td><td>The Python that runs the Gatherer's server. The Claude Code and Codex hook servers default to the Python they run in.</td></tr>
+      <tr><td><code>AG_PYTHON</code></td><td><code>python3</code></td><td>The Python that runs the Gatherer's server. The Claude Code and Codex proxies default to the Python they run in.</td></tr>
       <tr><td><code>AG_LLM_MODEL</code></td><td><code>[policies.llm] model</code></td><td>The model the Gatherer calls.</td></tr>
       <tr><td><code>AG_LLM_URL</code></td><td><code>[policies.llm] api_base</code></td><td>The server the Gatherer's LLM calls go to.</td></tr>
       <tr><td><code>AG_LLM_KEY</code></td><td>the variable <code>key_env</code> names</td><td>The API key for those calls.</td></tr>
@@ -311,7 +352,7 @@ env      = {}</code></pre>
       <tr><td><code>ag &lt;harness&gt; [args]</code></td><td>Run the harness with the Gatherer.</td></tr>
       <tr><td><code>ag model [NAME] [--api-base URL] [--key-env VAR]</code></td><td>Show or set the LLM the Gatherer calls.</td></tr>
       <tr><td><code>ag config</code></td><td>Show where the settings are, and what each harness resolves to.</td></tr>
-      <tr><td><code>ag status</code> / <code>ag stop</code></td><td>List / stop the hook servers <code>ag</code> started.</td></tr>
+      <tr><td><code>ag status</code> / <code>ag stop</code></td><td>List / stop the proxies <code>ag</code> started.</td></tr>
       <tr><td><code>ag gatherers</code></td><td>List every gatherer: its policy, pollers, events and last activity.</td></tr>
       <tr><td><code>ag show &lt;gatherer&gt;</code></td><td>Show a gatherer's resolved settings.</td></tr>
       <tr><td><code>ag new &lt;gatherer&gt; [--policy P] [--poller X ... | --no-pollers]</code></td><td>Create a gatherer ahead of use.</td></tr>
@@ -319,18 +360,6 @@ env      = {}</code></pre>
       <tr><td><code>ag home path</code></td><td>Print the home directory.</td></tr>
     </tbody>
   </table></div>
-
-  <h3 id="logs">Files and logs</h3>
-<pre><code>~/.ag/config.toml                       every setting
-~/.ag/plugins/                          your own policies and pollers (Python files)
-~/.ag/gatherers/&lt;name&gt;/gatherer.toml    a gatherer's policy, options and pollers
-~/.ag/gatherers/&lt;name&gt;/context.db       a gatherer's database (SQLite)
-~/.ag/hook_server/&lt;port&gt;.json           the hook servers ag started
-~/.ag/logs/gatherers/&lt;name&gt;/server.log  what each model call came to
-~/.ag/logs/gatherers/&lt;name&gt;/worker.log  background builds
-~/.ag/logs/&lt;harness&gt;_server.log         each Gatherer server's own output
-~/.ag/logs/hook_servers/&lt;port&gt;.log      each hook server's output
-~/.ag/logs/llm/                         one JSON file per LLM call the policies make</code></pre>
 
   <h2 id="extending">Extending ag</h2>
   <p>The framework is built to be extended in three places. A <strong>context policy</strong> decides what context each model call gets. A <strong>poller</strong> brings in information from the environment. An <strong>adaptor</strong>, with a launcher, connects a new harness. Each is a class you name in <code>config.toml</code>; nothing else in <code>ag</code> needs to change. Policies and pollers can live in <code>~/.ag/plugins/</code>, or in any importable package.</p>
@@ -503,7 +532,7 @@ args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
     <li>A <strong>hook</strong> in the harness calls the Gatherer before each model call.</li>
     <li>A <strong>launcher</strong> starts the harness with that hook in place, for one run.</li>
   </ul>
-  <p>The shipped harnesses show the two usual ways to hook in. A harness that talks HTTP to its model (Claude Code, Codex) gets a local hook server between it and its API. A harness with a plugin system (Pi, OpenCode) gets a plugin.</p>
+  <p>A new harness can be <a href="#proxy-based">proxy-based</a>, like Claude Code and Codex, or <a href="#hook-based">hook-based</a>, like Pi and OpenCode.</p>
 
   <h4>The adaptor</h4>
   <p>An adaptor is a Python subclass of <code>Adaptor</code> (<code>integrations/tools/ag_orchestrator/adaptor.py</code>), or a TypeScript class implementing <code>Adaptor&lt;M&gt;</code> (<code>adaptor.ts</code>) with the same declarations as static fields (<code>adaptorName</code>, <code>outputs</code>, <code>accepts</code>, <code>properties</code>):</p>
@@ -545,7 +574,7 @@ from integrations.tools.ag_orchestrator.call_ag import call_ag
 client = AgClient("mine")                  # starts the Gatherer's server on first use
 messages, note = await call_ag(client, gatherer, {CHANNEL: session_id}, cwd, harness_messages, MyAdaptor())
 send(messages if messages is not None else harness_messages)   # None: the Gatherer could not answer</code></pre>
-  <p><code>call_ag</code> runs <code>to_events</code>, sends the events to the Gatherer, and runs <code>to_messages</code> on the context it returns. In TypeScript, <code>call_ag(server, {gatherer, properties, cwd}, messages, adaptor)</code> in <code>call_ag.ts</code> does the same. For an HTTP harness, <code>integrations/tools/hook_server/hook_server.py</code> runs a local server that calls a given hook on every request to the model's endpoint and relays the rest unchanged. A URL that starts with <code>/h/&lt;label&gt;/</code> hands the hook that label, which the shipped hooks use as the gatherer.</p>
+  <p><code>call_ag</code> runs <code>to_events</code>, sends the events to the Gatherer, and runs <code>to_messages</code> on the context it returns. In TypeScript, <code>call_ag(server, {gatherer, properties, cwd}, messages, adaptor)</code> in <code>call_ag.ts</code> does the same. For a proxy-based harness, <code>integrations/tools/hook_server/hook_server.py</code> is the proxy: it calls a given hook on every request to the model's endpoint, and relays everything else unchanged. A URL that starts with <code>/h/&lt;label&gt;/</code> hands the hook that label, which the shipped hooks use as the gatherer.</p>
 
   <h4>The launcher</h4>
   <p>A launcher is a subclass of <code>cli.launch.Launcher</code>. <code>ag</code> builds it with the harness's settings (its <code>config.toml</code> entry over the class's <code>defaults</code>), and calls <code>launch</code> with a <code>Run</code>. The <code>Run</code> holds the harness's arguments, its command, the environment, the gatherer (<code>None</code> for one per session), the working directory, whether this is a dry run, and the adaptor named in the entry. <code>launch</code> returns the command and environment to run:</p>
@@ -559,7 +588,7 @@ class MyLauncher(Launcher):
         env = {**run.env, "AG_ADAPTOR": run.adaptor}          # the plugin loads the adaptor ag checked
         flags = ["--plugin", "/path/to/my_plugin"] + (["--ag-gatherer", run.gatherer] if run.gatherer else [])
         return Launch([*run.command, *flags, *run.args], env)</code></pre>
-  <p>A launcher may also implement <code>describe</code> (for <code>ag config</code>), and <code>status</code> and <code>stop</code> (for anything it keeps running, such as a hook server). Change nothing the harness reads on disk: pass everything for this run only, through flags or the environment.</p>
+  <p>A launcher may also implement <code>describe</code> (for <code>ag config</code>), and <code>status</code> and <code>stop</code> (for anything it keeps running, such as a proxy). Change nothing the harness reads on disk: pass everything for this run only, through flags or the environment.</p>
 
   <h4>Registering the harness</h4>
 <pre><code>[cli.harnesses.mine]
