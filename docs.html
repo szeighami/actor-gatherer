@@ -50,6 +50,7 @@
   <p><code>ag</code> runs a coding agent you already use (Claude Code, Codex, OpenCode or Pi) with a <strong>Gatherer</strong> in front of every model call. Before each call, the agent's messages go to the Gatherer, which stores them as events and decides what context the model gets: the current conversation, plus what matters from earlier history, from other agents, and from the environment. These docs describe <a href="#configuration">every setting</a> (the context policy, the pollers, the harnesses and the environment variables), and <a href="#extending">how to add</a> your own context policies, pollers and adaptors. For installing <code>ag</code> and a quickstart, see the README in the <a href="https://github.com/szeighami/actor-gatherer">code repository</a>.</p>
 
   <h3 id="concepts">Concepts</h3>
+  <figure class="wide full"><img src="figures/architecture.png" alt="Actor-Gatherer architecture: each Actor, a harness plus its adaptor, calls insert and get_context on the Gatherer, which holds the context and insertion policy and a database; pollers watch the environment and insert events."><figcaption>Each Actor (a harness and its adaptor) sends what it sees and does to the Gatherer, and gets its context back before each model call. Pollers bring in changes from the environment, and the Gatherer's policy decides what context each Actor gets.</figcaption></figure>
   <div class="table-wrap"><table>
     <thead><tr><th>term</th><th>meaning</th></tr></thead>
     <tbody>
