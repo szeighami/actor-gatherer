@@ -173,3 +173,4 @@ main.post h2, main.post h3 { scroll-margin-top: 72px; }
 .rotator.rotating .harness.on { opacity: 1; transform: none; }
 .rotator.rotating .harness.off { opacity: 0; transform: translateY(-100%); }
 @media (max-width: 560px) { .rotator.rotating { justify-self: center; } }
+.stats + .hero { margin-top: 28px; }
