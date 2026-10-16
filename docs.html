@@ -37,12 +37,12 @@
     <ul>
       <li><a href="#policies"><code>[policies]</code></a></li>
       <li><a href="#llm"><code>[policies.llm]</code></a></li>
-      <li><a href="#pcm-options">Policy configuration</a></li>
       <li><a href="#pollers"><code>[pollers]</code></a></li>
-      <li><a href="#poller-options">Poller configuration</a></li>
       <li><a href="#cli-settings"><code>[cli]</code></a></li>
       <li><a href="#harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></a></li>
       <li><a href="#env">Other environment variables</a></li>
+      <li><a href="#pcm-options">Policy configuration</a></li>
+      <li><a href="#poller-options">Poller configuration</a></li>
     </ul>
     <p class="side-group"><a href="#extending">Extending ag</a></p>
     <ul>
@@ -214,6 +214,75 @@ model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM
     </tbody>
   </table></div>
 
+  <h3 id="pollers"><code>[pollers]</code></h3>
+<pre><code>[pollers]
+default = ["file_changes"]               # the pollers a new gatherer gets, whatever its policy
+
+[pollers.available.file_changes]
+class = "ag.ag_pollers.file_changes:FileChangePoller"
+args = { root = "{cwd}" }
+
+[pollers.available.team_chat]            # your own, from ~/.ag/plugins/chat_log.py
+file = "chat_log.py"
+class = "ChatLogPoller"
+args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
+  <p>An entry under <code>[pollers.available.&lt;name&gt;]</code> takes <code>class</code>, <code>file</code> and <code>module</code> as for policies, and <code>args</code>: the arguments the poller is built with. In a string argument, <code>{cwd}</code> is the agent's working directory, <code>{gatherer}</code> the gatherer's name and <code>{home}</code> the <code>ag</code> home; <code>~</code> is expanded. A poller whose arguments need <code>{cwd}</code> is skipped when the request has no working directory.</p>
+  <p>The options of the shipped poller are in <a href="#poller-options">Poller configuration</a>.</p>
+  <p>A gatherer's pollers must output event types its policy accepts; <code>ag</code> checks this before each run (see <a href="#events">Events, event types and properties</a>).</p>
+
+  <h3 id="cli-settings"><code>[cli]</code></h3>
+<pre><code>[cli]
+gatherer = "default"     # the gatherer every run joins; "." for one gatherer per session</code></pre>
+  <p><code>--gatherer</code> overrides it for one run (see <a href="#options">Options</a>).</p>
+
+  <h3 id="harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></h3>
+  <p><code>ag</code> knows a harness only from its entry here, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in <a href="#connections">Harness connection</a>.</p>
+<pre><code>[cli.harnesses.claude]
+launcher = "integrations.harnesses.claude.setup.launch:ClaudeLauncher"
+adaptor  = "integrations.harnesses.claude.adaptor.adaptor:ClaudeAdaptor"
+command  = ["claude"]
+upstream = ""
+port     = 4113
+log_dir  = ""
+trace_root = ""
+system_messages = ""
+env      = {}</code></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th>key</th><th>harnesses</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>launcher</code></td><td>all</td><td>(shipped)</td><td>The launcher class, <code>"module:Class"</code>.</td></tr>
+      <tr><td><code>adaptor</code></td><td>all</td><td>(shipped)</td><td>The adaptor class: <code>"module:Class"</code> in Python, or <code>"path.ts:Export"</code> in TypeScript (relative to the clone).</td></tr>
+      <tr><td><code>command</code></td><td>all</td><td>the harness's name</td><td>The command to run, as a list or a string.</td></tr>
+      <tr><td><code>env</code></td><td>all</td><td><code>{}</code></td><td>Extra environment variables for this harness only.</td></tr>
+      <tr><td><code>port</code></td><td>claude, codex</td><td>4113 / 4013</td><td>The first port the proxy tries.</td></tr>
+      <tr><td><code>log_dir</code></td><td>claude, codex</td><td><code>""</code></td><td>If set, write each request the hook changed, before and after.</td></tr>
+      <tr><td><code>upstream</code></td><td>claude</td><td><code>""</code></td><td>Where API calls go. Empty: <code>$ANTHROPIC_BASE_URL</code> if set, else Anthropic's API.</td></tr>
+      <tr><td><code>trace_root</code></td><td>claude</td><td><code>""</code></td><td>If set, record every model call there: the request as the model got it, and its answer.</td></tr>
+      <tr><td><code>system_messages</code></td><td>claude</td><td><code>""</code></td><td>How the Gatherer's messages are sent: <code>keep</code> (as system messages) or <code>user</code> (as user-turn reminders). Empty: chosen by model, <code>user</code> for Gemini.</td></tr>
+      <tr><td><code>provider</code></td><td>codex</td><td><code>""</code></td><td>The Codex model provider to hook. Empty: the one Codex would use.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Environment variables for one harness, set when you run it:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>variable</th><th>harness</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>AG_PI_TIMEOUT_MS</code>, <code>AG_OPENCODE_TIMEOUT_MS</code></td><td>pi, opencode</td><td>300000</td><td>How long a model call waits for the Gatherer.</td></tr>
+      <tr><td><code>AG_PI_COMPACTION=allow</code>, <code>AG_OPENCODE_COMPACTION=allow</code></td><td>pi, opencode</td><td>off</td><td>Keep the harness's own compaction on.</td></tr>
+      <tr><td><code>AG_CODEX_AG_ROLE=user</code></td><td>codex</td><td><code>developer</code></td><td>Send the Gatherer's messages to Codex as user messages instead of developer messages.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="env">Other environment variables</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>variable</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>AG_HOME</code></td><td><code>~/.ag</code></td><td>The <a href="#home">home directory</a>: settings, gatherers, logs.</td></tr>
+      <tr><td><code>AG_PYTHON</code></td><td><code>python3</code></td><td>The Python that runs the Gatherer's server. The Claude Code and Codex proxies default to the Python they run in.</td></tr>
+      <tr><td><code>AG_GATHERER</code></td><td>none</td><td>The gatherer, for the Pi extension and the OpenCode plugin when run without <code>ag</code>. Ignored under <code>ag</code>: use <code>--gatherer</code>.</td></tr>
+      <tr><td><code>AG_ADAPTOR</code></td><td>set by <code>ag</code></td><td>The adaptor the Pi extension or OpenCode plugin loads, as <code>"path.ts:Export"</code>.</td></tr>
+    </tbody>
+  </table></div>
+
   <h3 id="pcm-options">Policy configuration: <code>proactive_context_manager</code></h3>
   <p><code>proactive_context_manager</code>, the policy <code>ag</code> ships, keeps the current task verbatim. When the context grows, it builds, in the background, a condensed view of the earlier history: it splits the history into tasks, summarizes them, and ranks them by relevance to the current work. The result is a set of sections, each with a token budget. It also shows the user's requests to other agents in the same gatherer, and tells the agent when a file it read has since changed. Every option below is set in a <a href="#policies">catalog entry's</a> <code>options</code>, or for one gatherer in its <code>gatherer.toml</code> <code>[options]</code>; an unknown option is an error.</p>
 
@@ -300,22 +369,6 @@ model = "gemini/gemini-3.8-flash"        # required: "provider/model" as LiteLLM
     </tbody>
   </table></div>
 
-  <h3 id="pollers"><code>[pollers]</code></h3>
-<pre><code>[pollers]
-default = ["file_changes"]               # the pollers a new gatherer gets, whatever its policy
-
-[pollers.available.file_changes]
-class = "ag.ag_pollers.file_changes:FileChangePoller"
-args = { root = "{cwd}" }
-
-[pollers.available.team_chat]            # your own, from ~/.ag/plugins/chat_log.py
-file = "chat_log.py"
-class = "ChatLogPoller"
-args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
-  <p>An entry under <code>[pollers.available.&lt;name&gt;]</code> takes <code>class</code>, <code>file</code> and <code>module</code> as for policies, and <code>args</code>: the arguments the poller is built with. In a string argument, <code>{cwd}</code> is the agent's working directory, <code>{gatherer}</code> the gatherer's name and <code>{home}</code> the <code>ag</code> home; <code>~</code> is expanded. A poller whose arguments need <code>{cwd}</code> is skipped when the request has no working directory.</p>
-  <p>The options of the shipped poller are in <a href="#poller-options">Poller configuration</a>.</p>
-  <p>A gatherer's pollers must output event types its policy accepts; <code>ag</code> checks this before each run (see <a href="#events">Events, event types and properties</a>).</p>
-
   <h3 id="poller-options">Poller configuration: <code>file_changes</code></h3>
   <p><code>file_changes</code>, the poller <code>ag</code> ships, reports every file under its directory modified since the last model call, as an <code>environment_update</code> event. It skips hidden directories, <code>__pycache__</code>, <code>node_modules</code> and symbolic links. The policy tells the agent about a change only if the conversation mentioned that file, and not when the agent's own tool calls wrote it. Its options are set in its catalog entry's <code>args</code>:</p>
   <div class="table-wrap"><table>
@@ -328,59 +381,6 @@ args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
 <pre><code>[pollers.available.file_changes]
 class = "ag.ag_pollers.file_changes:FileChangePoller"
 args = { root = "{cwd}", limit = 200 }</code></pre>
-
-  <h3 id="cli-settings"><code>[cli]</code></h3>
-<pre><code>[cli]
-gatherer = "default"     # the gatherer every run joins; "." for one gatherer per session</code></pre>
-  <p><code>--gatherer</code> overrides it for one run (see <a href="#options">Options</a>).</p>
-
-  <h3 id="harnesses"><code>[cli.harnesses.&lt;name&gt;]</code></h3>
-  <p><code>ag</code> knows a harness only from its entry here, which names its launcher and its adaptor and holds the launcher's settings. <code>ag &lt;name&gt;</code> runs it. How each shipped harness is connected is in <a href="#connections">Harness connection</a>.</p>
-<pre><code>[cli.harnesses.claude]
-launcher = "integrations.harnesses.claude.setup.launch:ClaudeLauncher"
-adaptor  = "integrations.harnesses.claude.adaptor.adaptor:ClaudeAdaptor"
-command  = ["claude"]
-upstream = ""
-port     = 4113
-log_dir  = ""
-trace_root = ""
-system_messages = ""
-env      = {}</code></pre>
-  <div class="table-wrap"><table>
-    <thead><tr><th>key</th><th>harnesses</th><th>default</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>launcher</code></td><td>all</td><td>(shipped)</td><td>The launcher class, <code>"module:Class"</code>.</td></tr>
-      <tr><td><code>adaptor</code></td><td>all</td><td>(shipped)</td><td>The adaptor class: <code>"module:Class"</code> in Python, or <code>"path.ts:Export"</code> in TypeScript (relative to the clone).</td></tr>
-      <tr><td><code>command</code></td><td>all</td><td>the harness's name</td><td>The command to run, as a list or a string.</td></tr>
-      <tr><td><code>env</code></td><td>all</td><td><code>{}</code></td><td>Extra environment variables for this harness only.</td></tr>
-      <tr><td><code>port</code></td><td>claude, codex</td><td>4113 / 4013</td><td>The first port the proxy tries.</td></tr>
-      <tr><td><code>log_dir</code></td><td>claude, codex</td><td><code>""</code></td><td>If set, write each request the hook changed, before and after.</td></tr>
-      <tr><td><code>upstream</code></td><td>claude</td><td><code>""</code></td><td>Where API calls go. Empty: <code>$ANTHROPIC_BASE_URL</code> if set, else Anthropic's API.</td></tr>
-      <tr><td><code>trace_root</code></td><td>claude</td><td><code>""</code></td><td>If set, record every model call there: the request as the model got it, and its answer.</td></tr>
-      <tr><td><code>system_messages</code></td><td>claude</td><td><code>""</code></td><td>How the Gatherer's messages are sent: <code>keep</code> (as system messages) or <code>user</code> (as user-turn reminders). Empty: chosen by model, <code>user</code> for Gemini.</td></tr>
-      <tr><td><code>provider</code></td><td>codex</td><td><code>""</code></td><td>The Codex model provider to hook. Empty: the one Codex would use.</td></tr>
-    </tbody>
-  </table></div>
-  <p>Environment variables for one harness, set when you run it:</p>
-  <div class="table-wrap"><table>
-    <thead><tr><th>variable</th><th>harness</th><th>default</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>AG_PI_TIMEOUT_MS</code>, <code>AG_OPENCODE_TIMEOUT_MS</code></td><td>pi, opencode</td><td>300000</td><td>How long a model call waits for the Gatherer.</td></tr>
-      <tr><td><code>AG_PI_COMPACTION=allow</code>, <code>AG_OPENCODE_COMPACTION=allow</code></td><td>pi, opencode</td><td>off</td><td>Keep the harness's own compaction on.</td></tr>
-      <tr><td><code>AG_CODEX_AG_ROLE=user</code></td><td>codex</td><td><code>developer</code></td><td>Send the Gatherer's messages to Codex as user messages instead of developer messages.</td></tr>
-    </tbody>
-  </table></div>
-
-  <h3 id="env">Other environment variables</h3>
-  <div class="table-wrap"><table>
-    <thead><tr><th>variable</th><th>default</th><th>meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>AG_HOME</code></td><td><code>~/.ag</code></td><td>The <a href="#home">home directory</a>: settings, gatherers, logs.</td></tr>
-      <tr><td><code>AG_PYTHON</code></td><td><code>python3</code></td><td>The Python that runs the Gatherer's server. The Claude Code and Codex proxies default to the Python they run in.</td></tr>
-      <tr><td><code>AG_GATHERER</code></td><td>none</td><td>The gatherer, for the Pi extension and the OpenCode plugin when run without <code>ag</code>. Ignored under <code>ag</code>: use <code>--gatherer</code>.</td></tr>
-      <tr><td><code>AG_ADAPTOR</code></td><td>set by <code>ag</code></td><td>The adaptor the Pi extension or OpenCode plugin loads, as <code>"path.ts:Export"</code>.</td></tr>
-    </tbody>
-  </table></div>
 
   <h2 id="extending">Extending ag</h2>
   <p>The framework is built to be extended in three places. A <strong>context policy</strong> decides what context each model call gets. A <strong>poller</strong> brings in information from the environment. An <strong>adaptor</strong>, with a launcher, connects a new harness. Each is a class you name in <code>config.toml</code>; nothing else in <code>ag</code> needs to change. Policies and pollers can live in <code>~/.ag/plugins/</code>, or in any importable package.</p>
