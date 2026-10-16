@@ -20,6 +20,7 @@
     <p class="side-group"><a href="#overview">Overview</a></p>
     <ul>
       <li><a href="#concepts">Concepts</a></li>
+      <li><a href="#home">The home directory</a></li>
     </ul>
     <p class="side-group"><a href="#connections">Harness connection</a></p>
     <p class="side-group"><a href="#configuration">Configuration</a></p>
@@ -33,7 +34,6 @@
       <li><a href="#harnesses">Harnesses</a></li>
       <li><a href="#env">Environment variables</a></li>
       <li><a href="#commands">Commands</a></li>
-      <li><a href="#logs">Files and logs</a></li>
     </ul>
     <p class="side-group"><a href="#extending">Extending ag</a></p>
     <ul>
@@ -62,6 +62,23 @@
       <tr><td><strong>launcher</strong></td><td>Per-harness code that starts the harness with the Gatherer connected, for one run.</td></tr>
     </tbody>
   </table></div>
+
+  <h3 id="home">The home directory</h3>
+  <p>Everything <code>ag</code> keeps is in one directory, <code>~/.ag</code> (set <code>AG_HOME</code> to move it). Each gatherer has a directory of its own, with its settings and its database:</p>
+<pre><code>~/.ag/
+├── config.toml                     every setting: policies, pollers, the LLM, harnesses
+├── plugins/                        your own policies and pollers (Python files)
+├── gatherers/&lt;name&gt;/               one directory per gatherer:
+│   ├── gatherer.toml               its policy, its options and its pollers
+│   └── context.db                  its database (SQLite): every event, and every context it sent
+├── hook_server/&lt;port&gt;.json         the hook servers ag started (Claude Code, Codex)
+└── logs/
+    ├── gatherers/&lt;name&gt;/server.log what each model call came to
+    ├── gatherers/&lt;name&gt;/worker.log the gatherer's background builds
+    ├── &lt;harness&gt;_server.log        each Gatherer server's own output
+    ├── hook_servers/&lt;port&gt;.log     each hook server's output
+    └── llm/                        one JSON file per LLM call the policies make</code></pre>
+  <p>A gatherer's database records exactly what the model was sent on every call, so any context can be audited later. <code>ag gatherers</code> lists every gatherer, and <code>ag show &lt;gatherer&gt;</code> shows one's settings.</p>
 
   <h2 id="connections">Harness connection</h2>
   <p><code>ag</code> connects each harness through a hook the harness already supports. Nothing the harness reads on disk is changed: each change (an environment variable, a flag, a local proxy) applies to that one run, and the same command without <code>ag</code> behaves as it always did.</p>
@@ -319,18 +336,6 @@ env      = {}</code></pre>
       <tr><td><code>ag home path</code></td><td>Print the home directory.</td></tr>
     </tbody>
   </table></div>
-
-  <h3 id="logs">Files and logs</h3>
-<pre><code>~/.ag/config.toml                       every setting
-~/.ag/plugins/                          your own policies and pollers (Python files)
-~/.ag/gatherers/&lt;name&gt;/gatherer.toml    a gatherer's policy, options and pollers
-~/.ag/gatherers/&lt;name&gt;/context.db       a gatherer's database (SQLite)
-~/.ag/hook_server/&lt;port&gt;.json           the hook servers ag started
-~/.ag/logs/gatherers/&lt;name&gt;/server.log  what each model call came to
-~/.ag/logs/gatherers/&lt;name&gt;/worker.log  background builds
-~/.ag/logs/&lt;harness&gt;_server.log         each Gatherer server's own output
-~/.ag/logs/hook_servers/&lt;port&gt;.log      each hook server's output
-~/.ag/logs/llm/                         one JSON file per LLM call the policies make</code></pre>
 
   <h2 id="extending">Extending ag</h2>
   <p>The framework is built to be extended in three places. A <strong>context policy</strong> decides what context each model call gets. A <strong>poller</strong> brings in information from the environment. An <strong>adaptor</strong>, with a launcher, connects a new harness. Each is a class you name in <code>config.toml</code>; nothing else in <code>ag</code> needs to change. Policies and pollers can live in <code>~/.ag/plugins/</code>, or in any importable package.</p>
