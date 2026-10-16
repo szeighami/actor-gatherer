@@ -7,49 +7,43 @@
 <meta name="description" content="Documentation for ag, the Actor-Gatherer command line: every setting for policies, pollers and harnesses, the environment variables, and how to write your own policies, pollers and adaptors.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
-<main class="doc">
-  <a class="back" href="./">&larr; Home</a>
-  <header>
-    <h1>Documentation</h1>
-    <p class="subtitle">Configuring <code>ag</code>, and extending it with your own policies, pollers and adaptors</p>
-    <div class="buttons">
-      <a class="btn" href="https://github.com/szeighami/actor-gatherer">Code</a>
-      <a class="btn secondary" href="blog.html">Blog post</a>
-    </div>
-  </header>
-
-  <p><code>ag</code> runs a coding agent you already use (Claude Code, Codex, OpenCode or Pi) with a <strong>Gatherer</strong> in front of every model call. This page has two parts. <a href="#configuration">Part 1</a> describes every setting: the context policy, the pollers, the harnesses, and the environment variables. <a href="#extending">Part 2</a> explains how to add your own context policies, pollers and adaptors. For installing <code>ag</code> and a quickstart, see the README in the <a href="https://github.com/szeighami/actor-gatherer">code repository</a>.</p>
-
-  <nav class="toc" aria-label="Contents">
-    <ol>
-      <li><a href="#configuration">Configuration</a>
-        <ol>
-          <li><a href="#concepts">Concepts</a></li>
-          <li><a href="#files">Where settings live</a></li>
-          <li><a href="#gatherers">Choosing a gatherer</a></li>
-          <li><a href="#llm">The LLM the Gatherer calls</a></li>
-          <li><a href="#policies">Policies</a></li>
-          <li><a href="#pcm-options">Options of <code>proactive_context_manager</code></a></li>
-          <li><a href="#pollers">Pollers</a></li>
-          <li><a href="#harnesses">Harnesses</a></li>
-          <li><a href="#env">Environment variables</a></li>
-          <li><a href="#commands">Commands</a></li>
-          <li><a href="#logs">Files and logs</a></li>
-        </ol>
-      </li>
-      <li><a href="#extending">Extending ag</a>
-        <ol>
-          <li><a href="#events">Events, event types and properties</a></li>
-          <li><a href="#write-policy">Writing a context policy</a></li>
-          <li><a href="#write-poller">Writing a poller</a></li>
-          <li><a href="#write-adaptor">Writing an adaptor for a new harness</a></li>
-        </ol>
-      </li>
-    </ol>
+<div class="topbar">
+  <button class="menu" id="menu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
+  <a class="brand" href="./">Actor-Gatherer</a><span class="crumb">Documentation</span>
+</div>
+<div class="docs-layout">
+<aside class="sidebar" id="sidebar">
+  <nav aria-label="Documentation">
+    <a class="side-top" href="#top">Overview</a>
+    <p class="side-group"><a href="#configuration">Configuration</a></p>
+    <ul>
+      <li><a href="#concepts">Concepts</a></li>
+      <li><a href="#files">Where settings live</a></li>
+      <li><a href="#gatherers">Choosing a gatherer</a></li>
+      <li><a href="#llm">The LLM the Gatherer calls</a></li>
+      <li><a href="#policies">Policies</a></li>
+      <li><a href="#pcm-options">Options of <code>proactive_context_manager</code></a></li>
+      <li><a href="#pollers">Pollers</a></li>
+      <li><a href="#harnesses">Harnesses</a></li>
+      <li><a href="#env">Environment variables</a></li>
+      <li><a href="#commands">Commands</a></li>
+      <li><a href="#logs">Files and logs</a></li>
+    </ul>
+    <p class="side-group"><a href="#extending">Extending ag</a></p>
+    <ul>
+      <li><a href="#events">Events, event types and properties</a></li>
+      <li><a href="#write-policy">Writing a context policy</a></li>
+      <li><a href="#write-poller">Writing a poller</a></li>
+      <li><a href="#write-adaptor">Writing an adaptor for a new harness</a></li>
+    </ul>
   </nav>
+</aside>
+<main class="doc" id="top">
+  <h1>Documentation</h1>
+  <p><code>ag</code> runs a coding agent you already use (Claude Code, Codex, OpenCode or Pi) with a <strong>Gatherer</strong> in front of every model call. This page has two parts. <a href="#configuration">Part 1</a> describes every setting: the context policy, the pollers, the harnesses, and the environment variables. <a href="#extending">Part 2</a> explains how to add your own context policies, pollers and adaptors. For installing <code>ag</code> and a quickstart, see the README in the <a href="https://github.com/szeighami/actor-gatherer">code repository</a>.</p>
 
   <!-- ============================================================ PART 1 -->
 
@@ -575,5 +569,23 @@ command  = ["mine"]</code></pre>
 
   <footer>Actor-Gatherer · 2026</footer>
 </main>
+</div>
+<script>
+(function () {
+  var side = document.getElementById('sidebar'), menu = document.getElementById('menu');
+  function setOpen(open) { side.classList.toggle('open', open); menu.setAttribute('aria-expanded', open); }
+  menu.onclick = function () { setOpen(!side.classList.contains('open')); };
+  side.addEventListener('click', function (e) { if (e.target.closest('a')) setOpen(false); });
+  var links = {}; side.querySelectorAll('a[href^="#"]').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+  var heads = Array.prototype.filter.call(document.querySelectorAll('.doc h2[id], .doc h3[id]'), function (h) { return links[h.id]; });
+  function spy() {
+    var cur = heads[0];
+    for (var i = 0; i < heads.length; i++) { if (heads[i].getBoundingClientRect().top <= 90) cur = heads[i]; else break; }
+    side.querySelectorAll('a.active').forEach(function (a) { a.classList.remove('active'); });
+    if (cur) links[cur.id].classList.add('active');
+  }
+  window.addEventListener('scroll', spy, { passive: true }); spy();
+})();
+</script>
 </body>
 </html>
