@@ -40,9 +40,9 @@
     <p class="side-group"><a href="#extending">Extending <code>ag</code></a></p>
     <ul>
       <li><a href="#events">Events, event types and properties</a></li>
-      <li><a href="#write-policy">Writing a context policy</a></li>
-      <li><a href="#write-poller">Writing a poller</a></li>
-      <li><a href="#write-adaptor">Writing an adaptor for a new harness</a></li>
+      <li><a href="#write-policy">Writing a new context policy</a></li>
+      <li><a href="#write-poller">Writing a new poller</a></li>
+      <li><a href="#write-adaptor">Adding a new harness</a></li>
     </ul>
   </nav>
 </aside>
@@ -397,7 +397,7 @@ args = { root = "{cwd}", limit = 200 }</code></pre>
   </ul>
   <p>Adaptors and pollers declare which properties they set, and <code>ag</code> also checks those against the policy's event types.</p>
 
-  <h3 id="write-policy">Writing a context policy</h3>
+  <h3 id="write-policy">Writing a new context policy</h3>
   <p>A policy is a subclass of <code>ag.ag_interface.Policy</code>. It imports nothing of the rest of <code>ag</code>: everything it works with is handed to it.</p>
 <pre><code>class Policy(ABC):
     name: str                                  # what the logs call it
@@ -477,7 +477,7 @@ options = { show = 3 }</code></pre>
     <li>The policy's building blocks are in <code>ag/ag_policies/tools/</code>: grouping events into turns and tasks, segmentation, summarization, the new-task check, ranking, and rendering to a token budget. A new policy can compose them.</li>
   </ul>
 
-  <h3 id="write-poller">Writing a poller</h3>
+  <h3 id="write-poller">Writing a new poller</h3>
   <p>A poller is a subclass of <code>ag.ag_interface.Poller</code>. Before every model call, the Gatherer asks each of the gatherer's pollers for what happened since it last asked, stores what they return, and only then lets the policy build the context.</p>
 <pre><code>class Poller(ABC):
     name: str            # its poll mark: one "last asked" time is kept per name
@@ -535,7 +535,7 @@ args = { path = "~/team-chat.jsonl", stream = "#team" }</code></pre>
 <pre><code>ag --gatherer team --poller file_changes --poller team_chat claude</code></pre>
   <p>An existing gatherer's pollers can be changed at any time by editing <code>pollers</code> in its <code>gatherer.toml</code>.</p>
 
-  <h3 id="write-adaptor">Writing an adaptor for a new harness</h3>
+  <h3 id="write-adaptor">Adding a new harness</h3>
   <p>Connecting a new harness takes three pieces:</p>
   <ul>
     <li>An <strong>adaptor</strong> turns the harness's messages into events, and the context back into messages.</li>
