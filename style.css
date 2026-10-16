@@ -165,3 +165,11 @@ main.post h2, main.post h3 { scroll-margin-top: 72px; }
 .blog-side .side-group { margin: 6px 0 2px; }
 /* index.html: the hero image */
 .hero { display: block; width: 100%; height: auto; border-radius: 12px; margin: 8px 0 28px; border: 1px solid var(--line); }
+/* index.html: the harness names, one at a time */
+.rotator { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
+.rotator.rotating { display: inline-grid; gap: 0; overflow: hidden; vertical-align: bottom; }
+.rotator.rotating .harness { grid-area: 1 / 1; justify-content: center; opacity: 0; transform: translateY(100%);
+  transition: opacity 0.45s ease, transform 0.45s ease; }
+.rotator.rotating .harness.on { opacity: 1; transform: none; }
+.rotator.rotating .harness.off { opacity: 0; transform: translateY(-100%); }
+@media (max-width: 560px) { .rotator.rotating { justify-self: center; } }
