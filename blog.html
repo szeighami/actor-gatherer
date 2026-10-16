@@ -32,6 +32,7 @@
       <li><a href="#results-harnesses">Different harnesses</a></li>
     </ul>
     <p class="side-group"><a href="#framework">Context Management Details</a></p>
+    <p class="side-group"><a href="#conclusion">Conclusion</a></p>
     <p class="side-group"><a href="#references">References</a></p>
   </nav>
 </aside>
@@ -155,6 +156,10 @@
   <figure class="wide" style="max-width:520px;margin-left:auto;margin-right:auto"><img src="figures/segment_policy.png" alt="Segment-based policy: within segment A the context is appended to; at a detected segment boundary the Gatherer performs a context switch, replacing G2 and G3 with G4 and G5, then segment B appends again."><figcaption>Fig. 6. Proactive context management policy overview.</figcaption></figure>
   <p>To balance cost/latency/accuracy trade-offs, we present a <em>segment</em>-based context management policy. We divide user interactions into <em>segments</em>, where a segment is a contiguous group of user and agent interactions that serve a single purpose. Within a segment, we only use an append-only context management policy; this keeps cost and latency low without sacrificing accuracy, since we expect the context needed within a segment to be similar. However, we perform <em>context switches</em> at segment boundaries, where a context switch modifies the context of the agent to both remove irrelevant information and bring in relevant information.</p>
   <p>Fig. 6 illustrates this process. Within a segment, our append-only policy appends new tool calls, outputs and other messages to the context, similarly to existing policies in harnesses. Unlike existing harnesses, it may also include relevant concurrent events from other agents and the environment (e.g., file changes, or other agents performing a related task). During a context switch, on the other hand, the whole context may be modified. This is done with an LLM-based approach that reasons over the past history and trajectories of all the agents in the Gatherer database to decide what to include in the context, augmented by a temporal inductive bias that gives more weight to more recent observations. Finally, information is included in the context at varying degrees of granularity, depending on its importance and how frequently it may change. Information expected to remain relevant for more tasks is placed earlier in the context to maximize KV-cache reuse, while information expected to change more frequently is placed towards the end.</p>
+
+  <h2 id="conclusion">Conclusion</h2>
+  <p>Actor-Gatherer is an open source bolt-on framework for context management across any agents, with current integrations with Claude Code, Codex, Pi and OpenCode. Separating the Actor, which performs the task, from the Gatherer, which proactively decides the Actor's context from its history, other agents and the environment, gives agents both longitudinal and lateral awareness. In single-agent settings, AG-Codex reaches 91% average accuracy against 59% for the best baseline (Mem0-Codex), improving on it by 27 points on coding, 36 points on data analysis and 0.19 F1 on session analysis. With parallel agents and changes to the environment, AG-Codex reaches 100% accuracy, against 69% for Codex+Hint and 0% for Codex. It does so at lower cost than the second-best approach, and with similar accuracy across all four harnesses.</p>
+  <p>Try it out at <a href="https://github.com/szeighami/actor-gatherer">github.com/szeighami/actor-gatherer</a>; the <a href="docs.html">documentation</a> covers installing <code>ag</code>, configuring it, and adding your own context policies, pollers and harnesses.</p>
 
   <h2 id="references">References</h2>
   <ol class="refs">
