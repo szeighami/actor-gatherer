@@ -37,7 +37,7 @@
       <li><a href="#pcm-options">Policy configuration</a></li>
       <li><a href="#poller-options">Poller configuration</a></li>
     </ul>
-    <p class="side-group"><a href="#extending">Extending ag</a></p>
+    <p class="side-group"><a href="#extending">Extending <code>ag</code></a></p>
     <ul>
       <li><a href="#events">Events, event types and properties</a></li>
       <li><a href="#write-policy">Writing a context policy</a></li>
@@ -64,7 +64,7 @@
     <li><strong>Pollers:</strong> <a href="https://github.com/szeighami/context_manager/blob/release/ag/ag_pollers/file_changes.py"><code>FileChangePoller</code></a>, which reports files changed under the agent's working directory since it last looked.</li>
     <li><strong>Context Policy:</strong> <a href="https://github.com/szeighami/context_manager/blob/release/ag/ag_policies/proactive_context_manager/policy.py"><code>ProactiveContextManager</code></a>, which searches earlier history in the background, and adds what other sessions asked for and what changed in the environment.</li>
   </ul>
-  <p>The framework is extensible. Add a new harness by defining an adaptor for it, new context policies for context management, and pollers that track other information in the environment. See <a href="#extending">Extending ag</a>.</p>
+  <p>The framework is extensible. Add a new harness by defining an adaptor for it, new context policies for context management, and pollers that track other information in the environment. See <a href="#extending">Extending <code>ag</code></a>.</p>
 
   <h2 id="install">Install</h2>
   <p>You need Python 3.11+ and the harness you want to run on your <code>PATH</code>.</p>
@@ -371,7 +371,7 @@ env      = {}</code></pre>
 class = "ag.ag_pollers.file_changes:FileChangePoller"
 args = { root = "{cwd}", limit = 200 }</code></pre>
 
-  <h2 id="extending">Extending ag</h2>
+  <h2 id="extending">Extending <code>ag</code></h2>
   <p>The framework is built to be extended in three places. A <strong>context policy</strong> decides what context each model call gets. A <strong>poller</strong> brings in information from the environment. An <strong>adaptor</strong>, with a launcher, connects a new harness. Each is a class you name in <code>config.toml</code>; nothing else in <code>ag</code> needs to change. Policies and pollers can live in <code>~/.ag/plugins/</code>, or in any importable package.</p>
 
   <h3 id="events">Events, event types and properties</h3>
